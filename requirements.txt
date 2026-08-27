@@ -1,0 +1,14 @@
+pandas>=2.0
+numpy>=1.26
+requests>=2.31
+beautifulsoup4>=4.12
+scikit-learn>=1.4
+openai>=1.40
+streamlit>=1.35
+python-dotenv>=1.0
+pytest>=8.0
+
+# Optional (auto-detected, graceful fallback if absent):
+# yfinance                # market caps / valuation multiples / Altman X4 with market equity
+# sentence-transformers   # semantic embeddings for qualitative retrieval (TF-IDF is the default)
+# pysentiment2            # full Loughran-McDonald dictionary; fallback lexicon ships in-repo
