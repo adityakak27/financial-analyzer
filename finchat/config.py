@@ -21,7 +21,7 @@ def _load_dotenv() -> None:
     try:
         from dotenv import load_dotenv
 
-        load_dotenv(PROJECT_ROOT / ".env")
+        load_dotenv(PROJECT_ROOT / ".env", override=True)
     except Exception:
         pass
 
@@ -59,9 +59,10 @@ FY_END = 2024
 SEC_USER_AGENT = os.getenv("SEC_USER_AGENT", "FinChat Research research@example.com")
 SEC_RATE_SLEEP = float(os.getenv("SEC_RATE_SLEEP", "0.15"))
 
-LLM_API_KEY = os.getenv("OPENAI_API_KEY", "")
-LLM_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1") or None
-LLM_MODEL = os.getenv("FINCHAT_MODEL", "gpt-4o-mini")
+# Google Gemini (https://aistudio.google.com/app/apikey)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 
 LM_LEXICON_PATH = Path(os.getenv("LM_LEXICON_PATH", str(DATA_DIR / "lm_lexicon.csv")))
 
@@ -96,4 +97,4 @@ class Settings:
 
 
 def llm_available() -> bool:
-    return bool(LLM_API_KEY)
+    return bool(GEMINI_API_KEY)

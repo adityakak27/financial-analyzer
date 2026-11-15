@@ -12,19 +12,41 @@ from finchat.chatbot.tools import tool_list_companies
 
 st.set_page_config(page_title="Conversational Fundamental Analyst", page_icon=":chart:", layout="wide")
 
+PROVIDER_MAP = {
+    "Google Gemini": "gemini",
+    "Offline Deterministic (No AI)": "offline",
+}
+
+if "provider_choice" not in st.session_state:
+    st.session_state.provider_choice = "Google Gemini"
+
 if "agent" not in st.session_state:
-    st.session_state.agent = FinChatAgent(force_offline=st.session_state.get("force_offline", False))
+    is_offline = st.session_state.provider_choice == "Offline Deterministic (No AI)"
+    st.session_state.agent = FinChatAgent(force_offline=is_offline)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 with st.sidebar:
     st.title("Fundamental Analyst Chat")
     st.caption("Hybrid design: exact structured lookups for numbers, retrieval for filing text.")
-    mode = st.radio("Answer mode", ["Auto", "Force offline (deterministic)"], index=0)
-    if (mode == "Force offline (deterministic)") != st.session_state.get("force_offline", False):
-        st.session_state.force_offline = mode == "Force offline (deterministic)"
-        st.session_state.agent = FinChatAgent(force_offline=st.session_state.force_offline)
+    
+    choice = st.selectbox(
+        "Mode",
+        list(PROVIDER_MAP.keys()),
+        index=list(PROVIDER_MAP.keys()).index(st.session_state.provider_choice),
+    )
+    if choice != st.session_state.provider_choice:
+        st.session_state.provider_choice = choice
+        is_offline = choice == "Offline Deterministic (No AI)"
+        st.session_state.agent = FinChatAgent(force_offline=is_offline)
         st.rerun()
+
+    active_agent = st.session_state.agent
+    if active_agent.llm.available:
+        st.success(f"🟢 **Engine:** {active_agent.llm.display_name}")
+    else:
+        st.info("⚡ **Engine:** Offline Deterministic (Rule-Based)")
+
     if st.button("Reset conversation"):
         st.session_state.agent.reset()
         st.session_state.messages = []

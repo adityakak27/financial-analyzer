@@ -46,10 +46,12 @@ def default_year_map() -> dict[str, int]:
 
 
 class FinChatAgent:
-    def __init__(self, force_offline: bool = False) -> None:
-        self.llm = LLMClient()
-        if force_offline:
-            self.llm.available = False
+    def __init__(
+        self,
+        force_offline: bool = False,
+        model: str | None = None,
+    ) -> None:
+        self.llm = LLMClient(force_offline=force_offline, model=model)
         self.state = ConversationState()
         self.history: list[dict[str, Any]] = []
         self._default_years: dict[str, int] | None = None
@@ -93,34 +95,49 @@ class FinChatAgent:
         citations: list[dict[str, Any]] = []
         trace: list[dict[str, Any]] = []
         final_text = None
-        for _ in range(6):
-            resp = self.llm.chat(messages, TOOL_SCHEMAS)
-            content, calls = LLMClient.parse_response(resp)
-            if not calls:
-                final_text = content or "(empty response)"
-                break
-            messages.append({
-                "role": "assistant",
-                "content": content or "",
-                "tool_calls": [
-                    {"id": c["id"], "type": "function",
-                     "function": {"name": c["name"], "arguments": json_dumps(c["args"])}}
-                    for c in calls
-                ],
-            })
-            for call in calls:
-                result = call_tool(call["name"], call["args"])
-                trace.append({"name": call["name"], "args": call["args"], "result": result})
-                citations.extend(extract_citations(call["name"], result))
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": call["id"],
-                    "content": json_dumps(result),
-                })
+        try:
+            for _ in range(6):
+                resp = self.llm.chat(messages, TOOL_SCHEMAS)
+                content, calls = LLMClient.parse_response(resp)
+                if not calls:
+                    final_text = content or "(empty response)"
+                    break
+                if hasattr(resp.choices[0].message, "model_dump"):
+                    raw_msg = resp.choices[0].message.model_dump(exclude_unset=True)
+                    clean_msg = {k: v for k, v in raw_msg.items() if v is not None}
+                    messages.append(clean_msg)
+                else:
+                    messages.append({
+                        "role": "assistant",
+                        "content": content or "",
+                        "tool_calls": [
+                            {"id": c["id"], "type": "function",
+                             "function": {"name": c["name"], "arguments": json_dumps(c["args"])}}
+                            for c in calls
+                        ],
+                    })
+                for call in calls:
+                    result = call_tool(call["name"], call["args"])
+                    trace.append({"name": call["name"], "args": call["args"], "result": result})
+                    citations.extend(extract_citations(call["name"], result))
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": call["id"],
+                        "content": json_dumps(result),
+                    })
+        except Exception as e:
+            resolved = resolve_question(question, self.state, self.default_years)
+            routed = route(question, resolved)
+            fallback = self._ask_offline(question, routed)
+            err_msg = str(e)
+            err_name = type(e).__name__
+            fallback.answer = f"*(Notice: LLM call encountered {err_name}: {err_msg}; answered via offline engine)*\n\n" + fallback.answer
+            return fallback
+
         if final_text is None:
             final_text = "(model stopped after maximum tool iterations)"
         return AgentResponse(question=question, answer=final_text, intent="llm",
-                             mode="llm", citations=citations, tool_trace=trace)
+                             mode="gemini", citations=citations, tool_trace=trace)
 
     def _ask_offline(self, question: str, routed: dict[str, Any]) -> AgentResponse:
         intent = routed["intent"]

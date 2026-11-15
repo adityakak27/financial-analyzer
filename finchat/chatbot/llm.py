@@ -3,8 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from finchat.chatbot import tools as T
-from finchat.config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
+from finchat.config import GEMINI_API_KEY, GEMINI_BASE_URL, GEMINI_MODEL
 
 
 class LLMUnavailable(RuntimeError):
@@ -12,23 +11,41 @@ class LLMUnavailable(RuntimeError):
 
 
 class LLMClient:
-    def __init__(self) -> None:
+    def __init__(self, force_offline: bool = False, model: str | None = None) -> None:
+        self.available = False
         self._client: Any = None
-        self.available = bool(LLM_API_KEY)
-        if self.available:
-            try:
-                from openai import OpenAI
+        self.model = (model or GEMINI_MODEL).strip()
+        
+        if force_offline or not GEMINI_API_KEY:
+            return
 
-                self._client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
-            except Exception:
-                self.available = False
+        try:
+            from openai import OpenAI
 
-    def chat(self, messages: list[dict[str, Any]], tool_schemas: list[dict[str, Any]] | None = None,
-             temperature: float = 0.0) -> Any:
+            self._client = OpenAI(
+                api_key=GEMINI_API_KEY,
+                base_url=GEMINI_BASE_URL,
+            )
+            self.available = True
+        except Exception:
+            self.available = False
+
+    @property
+    def display_name(self) -> str:
+        if not self.available:
+            return "Offline (Deterministic)"
+        return f"Google Gemini ({self.model})"
+
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        tool_schemas: list[dict[str, Any]] | None = None,
+        temperature: float = 0.0,
+    ) -> Any:
         if not self.available or self._client is None:
-            raise LLMUnavailable("No LLM API key configured; running offline mode.")
+            raise LLMUnavailable("No GEMINI_API_KEY configured; running in offline mode.")
         kwargs: dict[str, Any] = {
-            "model": LLM_MODEL,
+            "model": self.model,
             "messages": messages,
             "temperature": temperature,
         }
@@ -38,13 +55,26 @@ class LLMClient:
 
     @staticmethod
     def parse_response(resp: Any) -> tuple[str | None, list[dict[str, Any]]]:
+        if not resp or not getattr(resp, "choices", None):
+            return None, []
         msg = resp.choices[0].message
         content = getattr(msg, "content", None)
-        calls = []
-        for tc in (getattr(msg, "tool_calls", None) or []):
-            try:
-                args = json.loads(tc.function.arguments or "{}")
-            except Exception:
+        calls: list[dict[str, Any]] = []
+        for i, tc in enumerate(getattr(msg, "tool_calls", None) or []):
+            fn = getattr(tc, "function", None)
+            if not fn:
+                continue
+            name = getattr(fn, "name", "")
+            raw_args = getattr(fn, "arguments", "{}")
+            if isinstance(raw_args, dict):
+                args = raw_args
+            elif isinstance(raw_args, str):
+                try:
+                    args = json.loads(raw_args or "{}")
+                except Exception:
+                    args = {}
+            else:
                 args = {}
-            calls.append({"id": tc.id, "name": tc.function.name, "args": args})
+            call_id = getattr(tc, "id", None) or f"call_{i}_{name}"
+            calls.append({"id": call_id, "name": name, "args": args})
         return content, calls

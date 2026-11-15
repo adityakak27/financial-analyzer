@@ -29,8 +29,8 @@ DEMO_QUESTIONS = [
 
 
 def cmd_chat(args) -> None:
-    agent = FinChatAgent(force_offline=args.offline)
-    mode = "OFFLINE deterministic" if not agent.llm.available or args.offline else f"LLM ({args.model or 'default'})"
+    agent = FinChatAgent(force_offline=args.offline, model=getattr(args, "model", None))
+    mode = agent.llm.display_name if agent.llm.available and not args.offline else "OFFLINE deterministic"
     print(f"Conversational Fundamental Analyst - {mode}")
     print("Covered:", ", ".join(UNIVERSE.keys()))
     print("Type your question (empty line or 'quit' to exit).\n")
@@ -107,8 +107,8 @@ def main(argv: list[str] | None = None) -> None:
     s = sub.add_parser("build-eval", help="build evaluation question sets")
 
     s = sub.add_parser("chat", help="interactive terminal chat")
-    s.add_argument("--offline", action="store_true")
-    s.add_argument("--model", default=None)
+    s.add_argument("--offline", action="store_true", help="force offline deterministic mode")
+    s.add_argument("--model", default=None, help="Gemini model name (default: gemini-3.5-flash)")
 
     s = sub.add_parser("eval-grounding", help="run grounding accuracy eval")
     s.add_argument("--system", choices=["hybrid", "naive_rag"], default="hybrid")
