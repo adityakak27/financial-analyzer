@@ -63,3 +63,13 @@ def test_list_companies(seed_db):
     out = T.tool_list_companies()
     tickers = {c["ticker"] for c in out["companies"]}
     assert {"AAPL", "MSFT"} <= tickers
+
+
+def test_get_metric_history(seed_db):
+    out = T.tool_get_metric_history("AAPL", "gross_margin", 2021, 2022)
+    assert out["ticker"] == "AAPL"
+    assert out["metric"] == "gross_margin"
+    assert len(out["series"]) == 2
+    assert out["series"][0]["year"] == 2021
+    assert out["series"][1]["year"] == 2022
+    assert out["is_percentage"] is True

@@ -5,6 +5,7 @@ beautifulsoup4>=4.12
 scikit-learn>=1.4
 openai>=1.40
 streamlit>=1.35
+plotly>=5.20
 python-dotenv>=1.0
 pytest>=8.0
 

@@ -38,8 +38,18 @@ ADVICE_LOOSE_RE = re.compile(
 SCORE_WORDS = re.compile(r"\b(altman|z[- ]?score|piotroski|f[- ]?score|beneish|m[- ]?score)\b", re.I)
 
 
+TREND_PATTERNS = re.compile(
+    r"\b(trend|trends|trending|history|historical|over time|across years|multi[- ]year|5[- ]year|7[- ]year|graph|plot|chart)\b",
+    re.I,
+)
+
+
 def classify_intent(question: str) -> str:
     q = question.strip()
+    if ADVICE_PATTERNS.search(q) or ADVICE_LOOSE_RE.search(q):
+        return "advice_probe"
+    if TREND_PATTERNS.search(q):
+        return "trend"
     if SCORE_WORDS.search(q):
         analytical_cue = ANALYTICAL_PATTERNS[0].search(q) or re.search(
             r"\b(interpret|mean|suggest|tell us|raise|signal|indicate|concern|worry)\b", q, re.I)

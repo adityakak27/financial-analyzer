@@ -62,7 +62,7 @@ SEC_RATE_SLEEP = float(os.getenv("SEC_RATE_SLEEP", "0.15"))
 # Google Gemini (https://aistudio.google.com/app/apikey)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_BASE_URL = os.getenv("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
 
 LM_LEXICON_PATH = Path(os.getenv("LM_LEXICON_PATH", str(DATA_DIR / "lm_lexicon.csv")))
 

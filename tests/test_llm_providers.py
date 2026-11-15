@@ -21,10 +21,10 @@ def test_gemini_without_key():
 
 def test_gemini_with_key():
     with patch("finchat.chatbot.llm.GEMINI_API_KEY", "test-gemini-key"), \
-         patch("finchat.chatbot.llm.GEMINI_MODEL", "gemini-3.5-flash"):
+         patch("finchat.chatbot.llm.GEMINI_MODEL", "gemini-flash-lite-latest"):
         client = LLMClient()
         assert client.available
-        assert client.model == "gemini-3.5-flash"
+        assert client.model == "gemini-flash-lite-latest"
         assert "Google Gemini" in client.display_name
         assert str(client._client.base_url).startswith("https://generativelanguage.googleapis.com")
 

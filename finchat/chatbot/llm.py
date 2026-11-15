@@ -44,6 +44,7 @@ class LLMClient:
     ) -> Any:
         if not self.available or self._client is None:
             raise LLMUnavailable("No GEMINI_API_KEY configured; running in offline mode.")
+
         kwargs: dict[str, Any] = {
             "model": self.model,
             "messages": messages,

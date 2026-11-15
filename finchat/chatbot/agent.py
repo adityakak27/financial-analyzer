@@ -12,11 +12,12 @@ from finchat.chatbot.tools import (
     call_tool,
     format_metric_value,
     tool_get_line_items,
+    tool_get_metric_history,
     tool_get_ratio,
     tool_get_scores,
     tool_get_text_sentiment,
 )
-from finchat.config import SYSTEM_PROMPT
+from finchat.config import SYSTEM_PROMPT, UNIVERSE
 from finchat.db import get_db
 
 
@@ -156,8 +157,58 @@ class FinChatAgent:
             "qualitative": self._offline_qualitative,
             "comparative_qualitative": self._offline_qualitative,
             "analytical": self._offline_analytical,
+            "trend": self._offline_trend,
         }.get(intent, self._offline_fallback)
         return handler(question, routed)
+
+    def _offline_trend(self, question: str, routed: dict[str, Any]) -> AgentResponse:
+        ticker = routed["ticker"]
+        if not ticker:
+            ticker = self.state.current_ticker or "AAPL"
+        metric = extract_metric_hint(question) or "gross_margin"
+        history = tool_get_metric_history(ticker, metric)
+        series = history.get("series", [])
+        if not series:
+            return AgentResponse(
+                question,
+                f"No historical trend data found for {ticker} '{metric}'.",
+                intent="trend",
+                mode="offline",
+            )
+
+        cname = UNIVERSE.get(ticker, ticker)
+        display_m = metric.replace("_", " ")
+        lines = [
+            f"**{cname} ({ticker}) {display_m} trend ({series[0]['year']}–{series[-1]['year']}):**",
+            "",
+        ]
+        for s in series:
+            lines.append(f"- **FY{s['year']}**: {s['formatted']}")
+
+        vals = [s["value"] for s in series]
+        min_v = min(vals)
+        max_v = max(vals)
+        min_y = [s["year"] for s in series if s["value"] == min_v][0]
+        max_y = [s["year"] for s in series if s["value"] == max_v][0]
+        lines.append("")
+        lines.append(
+            f"- **Range**: Low of {format_metric_value(metric, min_v)} (FY{min_y}) to High of {format_metric_value(metric, max_v)} (FY{max_y})."
+        )
+
+        citations = [
+            {"type": "structured_lookup", "table": "ratios/statements", "ticker": ticker, "metric": metric}
+        ]
+        tool_trace = [
+            {"name": "get_metric_history", "args": {"ticker": ticker, "metric": metric}, "result": history}
+        ]
+        return AgentResponse(
+            question,
+            "\n".join(lines),
+            intent="trend",
+            mode="offline",
+            citations=citations,
+            tool_trace=tool_trace,
+        )
 
     def _offline_advice_probe(self, question: str, routed: dict[str, Any]) -> AgentResponse:
         lines = [
@@ -496,8 +547,9 @@ def extract_citations(tool_name: str, result: dict[str, Any]) -> list[dict[str, 
     out: list[dict[str, Any]] = []
     src = result.get("source") or {}
     if src.get("type") == "structured_lookup":
+        fy_val = result.get("year_range") or result.get("year")
         out.append({"type": "structured_lookup", "table": src.get("table"),
-                    "ticker": result.get("ticker"), "fy": result.get("year"),
+                    "ticker": result.get("ticker"), "fy": fy_val,
                     "metric": result.get("metric")})
     for p in result.get("results", []) or []:
         out.append({"type": "filing_text", "ticker": p.get("ticker"), "fy": p.get("year"),

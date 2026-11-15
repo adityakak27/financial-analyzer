@@ -30,6 +30,24 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "get_metric_history",
+            "description": "Get multi-year historical trend data (e.g. 2018-2024) for a financial metric, ratio, or score. "
+                           "Use this for ANY question asking about trends, history, progression over time, or charts/graphs.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Company ticker, e.g. AAPL"},
+                    "metric": {"type": "string", "description": "Ratio or line item name, e.g. gross_margin, roe, revenue, altman_z"},
+                    "start_year": {"type": "integer", "description": "Start fiscal year (default 2018)"},
+                    "end_year": {"type": "integer", "description": "End fiscal year (default 2024)"},
+                },
+                "required": ["ticker", "metric"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_scores",
             "description": "Get Altman Z-Score, Piotroski F-Score and Beneish M-Score (with interpretations) "
                            "for one company-year. Use for distress/manipulation/quality score questions.",
@@ -248,6 +266,68 @@ def tool_get_ratio(ticker: str, metric: str, year: int | None = None) -> dict[st
     return result
 
 
+def tool_get_metric_history(
+    ticker: str,
+    metric: str,
+    start_year: int = 2018,
+    end_year: int = 2024,
+) -> dict[str, Any]:
+    metric = _resolve_metric(metric)
+    ticker = (ticker or "").upper().strip()
+    with get_db() as con:
+        years = get_available_years(con, ticker)
+        if not years:
+            return {"error": f"No data for {ticker}", "covered_companies_hint": "call list_companies"}
+
+        source_table = "ratios"
+        # 1. Look in ratios table
+        rows = con.execute(
+            "SELECT fy, value FROM ratios WHERE ticker=? AND metric=? AND fy BETWEEN ? AND ? ORDER BY fy ASC",
+            (ticker, metric, start_year, end_year),
+        ).fetchall()
+
+        # 2. Look in statements table (e.g. revenue, net_income, cash, etc.)
+        if not rows:
+            source_table = "statements"
+            rows = con.execute(
+                "SELECT fy, value FROM statements WHERE ticker=? AND metric=? AND fy BETWEEN ? AND ? ORDER BY fy ASC",
+                (ticker, metric, start_year, end_year),
+            ).fetchall()
+
+        # 3. Look in scores table (altman_z, piotroski_f, beneish_m)
+        if not rows and metric in SCORE_METRICS:
+            source_table = "scores"
+            col_map = {"altman_z": "altman_z", "piotroski_f": "piotroski_f", "beneish_m": "beneish_m"}
+            col = col_map[metric]
+            rows = con.execute(
+                f"SELECT fy, {col} AS value FROM scores WHERE ticker=? AND fy BETWEEN ? AND ? ORDER BY fy ASC",
+                (ticker, start_year, end_year),
+            ).fetchall()
+
+        series = []
+        for r in rows:
+            val = r["value"]
+            if val is not None:
+                series.append({
+                    "year": int(r["fy"]),
+                    "value": float(val),
+                    "formatted": format_metric_value(metric, float(val)),
+                })
+
+        is_pct = metric in FRACTION_PCT_METRICS or metric in PERCENT_METRICS
+        year_span = f"FY{series[0]['year']}–FY{series[-1]['year']}" if series else f"FY{start_year}–FY{end_year}"
+        return {
+            "ticker": ticker,
+            "metric": metric,
+            "start_year": start_year,
+            "end_year": end_year,
+            "year_range": year_span,
+            "series": series,
+            "is_percentage": is_pct,
+            "source": {"type": "structured_lookup", "table": f"{source_table} database", "ticker": ticker},
+        }
+
+
 def tool_get_scores(ticker: str, year: int | None = None, focus: str | None = None) -> dict[str, Any]:
     ticker = (ticker or "").upper().strip()
     with get_db() as con:
@@ -439,6 +519,12 @@ TOOL_IMPLS = {
                                                        args.get("k", 4)),
     "get_text_sentiment": lambda args: tool_get_text_sentiment(args.get("ticker"), args.get("year"),
                                                                args.get("section")),
+    "get_metric_history": lambda args: tool_get_metric_history(
+        args.get("ticker", ""),
+        args.get("metric", ""),
+        args.get("start_year", 2018),
+        args.get("end_year", 2024),
+    ),
 }
 
 
