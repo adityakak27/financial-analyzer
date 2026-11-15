@@ -36,7 +36,7 @@ def _build_aliases() -> dict[str, str]:
         ALIASES[r["ticker"].lower()] = r["ticker"]
         name = (r["name"] or "").lower()
         stop = {"inc", "corp", "corporation", "company", "co", "ltd", "plc", "technologies",
-                "technology", "systems", "international", "holdings"}
+                "technology", "systems", "international", "holdings", "test"}
         tokens = [re.sub(r"[^a-z0-9&.]", "", t) for t in name.split()]
         tokens = [t for t in tokens if t and t not in stop]
         if len(tokens) >= 2 or not tokens:
@@ -58,7 +58,7 @@ def _build_two_word() -> list[tuple[str, str]]:
     with get_db() as con:
         rows = con.execute("SELECT ticker, name FROM companies").fetchall()
     stop = {"inc", "corp", "corporation", "company", "co", "ltd", "plc", "the", "group",
-            "technologies", "technology", "systems", "international", "devices", "inc."}
+            "technologies", "technology", "systems", "international", "devices", "inc.", "test"}
     for r in rows:
         toks = [t.strip(".,") for t in (r["name"] or "").split()]
         core = [t.lower() for t in toks if t.lower().strip(".,") not in stop]
@@ -78,6 +78,8 @@ def find_tickers(text: str) -> list[str]:
             lowered = lowered.replace(phrase, " ")
     for token in re.findall(r"[A-Za-z][A-Za-z0-9&.\-]*", text):
         low = token.lower().strip(".,")
+        if low not in lowered:
+            continue
         t = aliases.get(low)
         if not t or t in found:
             continue

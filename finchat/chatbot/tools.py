@@ -48,6 +48,23 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "compare_companies",
+            "description": "Perform an in-depth head-to-head financial comparison (duel/scorecard) between two companies for a fiscal year. "
+                           "Compares profitability margins, solvency/distress risk, accounting quality, and growth.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker_a": {"type": "string", "description": "First company ticker, e.g. AAPL"},
+                    "ticker_b": {"type": "string", "description": "Second company ticker, e.g. MSFT"},
+                    "year": {"type": "integer", "description": "Fiscal year to compare (optional, defaults to latest overlapping year)"},
+                },
+                "required": ["ticker_a", "ticker_b"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_scores",
             "description": "Get Altman Z-Score, Piotroski F-Score and Beneish M-Score (with interpretations) "
                            "for one company-year. Use for distress/manipulation/quality score questions.",
@@ -506,6 +523,12 @@ def tool_get_text_sentiment(ticker: str, year: int | None = None, section: str |
             "source": {"type": "structured_lookup", "table": "textstats"}}
 
 
+def tool_compare_companies(ticker_a: str, ticker_b: str, year: int | None = None) -> dict[str, Any]:
+    from finchat.engine.duel import compare_companies
+
+    return compare_companies(ticker_a, ticker_b, year)
+
+
 TOOL_IMPLS = {
     "get_ratio": lambda args: tool_get_ratio(args.get("ticker"), args.get("metric", ""), args.get("year")),
     "get_scores": lambda args: tool_get_scores(args.get("ticker"), args.get("year")),
@@ -524,6 +547,11 @@ TOOL_IMPLS = {
         args.get("metric", ""),
         args.get("start_year", 2018),
         args.get("end_year", 2024),
+    ),
+    "compare_companies": lambda args: tool_compare_companies(
+        args.get("ticker_a", ""),
+        args.get("ticker_b", ""),
+        args.get("year"),
     ),
 }
 

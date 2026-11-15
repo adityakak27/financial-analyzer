@@ -154,6 +154,7 @@ class FinChatAgent:
             "advice_probe": self._offline_advice_probe,
             "factual": self._offline_factual,
             "comparative_factual": self._offline_comparative_factual,
+            "comparative_duel": self._offline_comparative_duel,
             "qualitative": self._offline_qualitative,
             "comparative_qualitative": self._offline_qualitative,
             "analytical": self._offline_analytical,
@@ -338,6 +339,83 @@ class FinChatAgent:
                       "Source: exact structured lookups for each company-year."]
         self.state.update(metric=metric)
         return AgentResponse(question, "\n".join(lines), "comparative_factual", "offline", citations, trace)
+
+    def _offline_comparative_duel(self, question: str, routed: dict[str, Any]) -> AgentResponse:
+        tickers = routed.get("tickers", [])
+        if len(tickers) < 2 and self.state.current_ticker:
+            if not tickers:
+                tickers = [self.state.current_ticker, "MSFT" if self.state.current_ticker != "MSFT" else "AAPL"]
+            elif self.state.current_ticker not in tickers:
+                tickers = [tickers[0], self.state.current_ticker]
+        if len(tickers) < 2:
+            tickers = ["AAPL", "MSFT"]
+
+        t_a, t_b = tickers[0], tickers[1]
+        fy = routed.get("fy")
+        from finchat.chatbot.tools import tool_compare_companies
+
+        result = tool_compare_companies(t_a, t_b, fy)
+        trace = [{"name": "compare_companies", "args": {"ticker_a": t_a, "ticker_b": t_b, "year": fy}, "result": result}]
+
+        if result.get("error"):
+            return AgentResponse(
+                question,
+                f"Could not complete company duel: {result['error']}",
+                intent="comparative_duel",
+                mode="offline",
+                citations=[],
+                tool_trace=trace,
+            )
+
+        year = result["year"]
+        name_a = result["name_a"]
+        name_b = result["name_b"]
+        wins_a = result["wins_a"]
+        wins_b = result["wins_b"]
+        ties = result["ties"]
+        verdict = result["verdict"]
+
+        lines = [
+            f"### ⚔️ Company Duel: {name_a} ({t_a}) vs {name_b} ({t_b}) — FY{year}",
+            "",
+            f"**Scorecard Summary:** **{t_a}** {wins_a} – {wins_b} **{t_b}**" + (f" ({ties} ties)" if ties else ""),
+            f"**Verdict:** {verdict}",
+            "",
+            f"| Pillar | Metric | {t_a} | {t_b} | Advantage |",
+            "| :--- | :--- | :--- | :--- | :--- |",
+        ]
+
+        for pillar, metrics in result.get("pillars", {}).items():
+            for m in metrics:
+                winner = m["winner"]
+                if winner == t_a:
+                    adv = f"🟢 **{t_a}**"
+                elif winner == t_b:
+                    adv = f"🟢 **{t_b}**"
+                elif winner == "TIE":
+                    adv = "🤝 Tie"
+                else:
+                    adv = "N/A"
+                lines.append(f"| {pillar} | {m['metric_label']} | {m['formatted_a']} | {m['formatted_b']} | {adv} |")
+
+        citations = [
+            {
+                "type": "structured_lookup",
+                "table": "ratios and scores",
+                "ticker": f"{t_a} vs {t_b}",
+                "fy": year,
+                "metric": "scorecard",
+            }
+        ]
+
+        return AgentResponse(
+            question,
+            "\n".join(lines),
+            intent="comparative_duel",
+            mode="offline",
+            citations=citations,
+            tool_trace=trace,
+        )
 
     def _offline_qualitative(self, question: str, routed: dict[str, Any]) -> AgentResponse:
         ticker = routed["ticker"]
@@ -548,9 +626,22 @@ def extract_citations(tool_name: str, result: dict[str, Any]) -> list[dict[str, 
     src = result.get("source") or {}
     if src.get("type") == "structured_lookup":
         fy_val = result.get("year_range") or result.get("year")
-        out.append({"type": "structured_lookup", "table": src.get("table"),
-                    "ticker": result.get("ticker"), "fy": fy_val,
-                    "metric": result.get("metric")})
+        if "ticker_a" in result and "ticker_b" in result:
+            out.append({
+                "type": "structured_lookup",
+                "table": src.get("table", "ratios/scores"),
+                "ticker": f"{result.get('ticker_a')} vs {result.get('ticker_b')}",
+                "fy": fy_val,
+                "metric": "scorecard",
+            })
+        else:
+            out.append({
+                "type": "structured_lookup",
+                "table": src.get("table"),
+                "ticker": result.get("ticker"),
+                "fy": fy_val,
+                "metric": result.get("metric"),
+            })
     for p in result.get("results", []) or []:
         out.append({"type": "filing_text", "ticker": p.get("ticker"), "fy": p.get("year"),
                     "section": p.get("section"), "chunk_id": p.get("chunk_id"),

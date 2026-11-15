@@ -93,7 +93,12 @@ def route(question: str, resolved: dict[str, Any]) -> dict[str, Any]:
     intent = classify_intent(question)
     tickers = resolved["tickers"]
     if len(tickers) >= 2:
-        if intent == "factual":
+        metric = extract_metric_hint(question)
+        if re.search(r"\b(vs\.?|versus|duel|scorecard|head[- ]to[- ]head|who is better|overall|better investment|outperform)\b", question, re.I):
+            intent = "comparative_duel"
+        elif not metric and intent in ("analytical", "factual"):
+            intent = "comparative_duel"
+        elif intent == "factual" or (intent == "analytical" and metric):
             intent = "comparative_factual"
         elif intent in ("qualitative",):
             intent = "comparative_qualitative"

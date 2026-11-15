@@ -10,6 +10,7 @@ import streamlit as st
 
 from finchat.chatbot.agent import FinChatAgent
 from finchat.chatbot.tools import tool_get_metric_history, tool_list_companies
+from finchat.engine.duel import compare_companies
 
 st.set_page_config(page_title="Conversational Fundamental Analyst", page_icon=":chart:", layout="wide")
 
@@ -68,6 +69,45 @@ def render_trace_chart(tool_trace: list[dict]):
                 height=320,
             )
             st.plotly_chart(fig, use_container_width=True)
+        elif t.get("name") == "compare_companies":
+            res = t.get("result", {})
+            if "error" in res or not res.get("pillars"):
+                continue
+            t_a = res.get("ticker_a", "A")
+            t_b = res.get("ticker_b", "B")
+            year = res.get("year", "")
+            prof = res.get("pillars", {}).get("Profitability", [])
+            if prof:
+                labels = [m["metric_label"] for m in prof if m["val_a"] is not None and m["val_b"] is not None]
+                vals_a = [m["val_a"] * 100 if abs(m["val_a"]) <= 1.5 else m["val_a"] for m in prof if m["val_a"] is not None and m["val_b"] is not None]
+                vals_b = [m["val_b"] * 100 if abs(m["val_b"]) <= 1.5 else m["val_b"] for m in prof if m["val_a"] is not None and m["val_b"] is not None]
+
+                fig = go.Figure()
+                fig.add_trace(go.Bar(
+                    x=labels,
+                    y=vals_a,
+                    name=t_a,
+                    marker=dict(color="#2563EB"),
+                    hovertemplate=f"<b>{t_a}</b> %{{x}}: %{{y:.1f}}%<extra></extra>",
+                ))
+                fig.add_trace(go.Bar(
+                    x=labels,
+                    y=vals_b,
+                    name=t_b,
+                    marker=dict(color="#10B981"),
+                    hovertemplate=f"<b>{t_b}</b> %{{x}}: %{{y:.1f}}%<extra></extra>",
+                ))
+                fig.update_layout(
+                    title=f"<b>Profitability Duel: {t_a} vs {t_b} (FY{year})</b>",
+                    barmode="group",
+                    xaxis_title="Profitability Metric",
+                    yaxis_title="Margin / Return (%)",
+                    template="plotly_white",
+                    margin=dict(l=40, r=40, t=50, b=40),
+                    height=320,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
 
 def render_citations(citations: list[dict]):
@@ -129,7 +169,7 @@ with st.sidebar:
     st.write(", ".join(c["ticker"] for c in companies))
     st.caption("Data: SEC EDGAR XBRL + 10-K text. Educational use; not investment advice.")
 
-tab_chat, tab_visualizer = st.tabs(["💬 Conversational Analyst", "📈 Visual Trend Explorer"])
+tab_chat, tab_visualizer, tab_duel = st.tabs(["💬 Conversational Analyst", "📈 Visual Trend Explorer", "⚔️ Company Duel"])
 
 with tab_chat:
     for msg in st.session_state.messages:
@@ -271,3 +311,110 @@ with tab_visualizer:
                 )
         else:
             st.warning(f"No multi-year data recorded for {selected_ticker} on metric '{selected_metric}'.")
+
+with tab_duel:
+    st.subheader("⚔️ Company Duel: Head-to-Head Fundamental Scorecard")
+    st.caption("Benchmark two companies head-to-head across Profitability, Financial Health & Solvency, Accounting Quality, and Growth.")
+
+    col1, col2, col3 = st.columns([1.2, 1.2, 1])
+    ticker_list = [c["ticker"] for c in companies] if companies else ["AAPL", "MSFT", "NVDA", "ADBE", "INTC"]
+    with col1:
+        ticker_a = st.selectbox("Company A", ticker_list, index=0, key="duel_select_a")
+    with col2:
+        idx_b = 1 if len(ticker_list) > 1 else 0
+        ticker_b = st.selectbox("Company B", ticker_list, index=idx_b, key="duel_select_b")
+
+    # Fetch available overlapping years
+    preview = compare_companies(ticker_a, ticker_b)
+    common_years = preview.get("available_common_years", [2024, 2023, 2022, 2021, 2020, 2019, 2018])
+    with col3:
+        selected_year = st.selectbox("Fiscal Year", sorted(common_years, reverse=True), index=0, key="duel_select_year")
+
+    duel_res = compare_companies(ticker_a, ticker_b, selected_year)
+    if "error" in duel_res:
+        st.error(duel_res["error"])
+    else:
+        wins_a = duel_res["wins_a"]
+        wins_b = duel_res["wins_b"]
+        ties = duel_res["ties"]
+        overall = duel_res["overall_winner"]
+        verdict = duel_res["verdict"]
+
+        st.markdown("---")
+        m_a, m_verdict, m_b = st.columns([1.2, 2, 1.2])
+        with m_a:
+            st.metric(
+                label=f"{duel_res['name_a']} ({ticker_a})",
+                value=f"{wins_a} Wins",
+                delta=f"{wins_a - wins_b:+d} Net" if wins_a != wins_b else "Tied",
+            )
+        with m_verdict:
+            if overall == ticker_a:
+                st.success(f"🏆 **Winner: {ticker_a}**\n\n{verdict}")
+            elif overall == ticker_b:
+                st.success(f"🏆 **Winner: {ticker_b}**\n\n{verdict}")
+            else:
+                st.info(f"🤝 **Dead Heat Tie**\n\n{verdict}")
+        with m_b:
+            st.metric(
+                label=f"{duel_res['name_b']} ({ticker_b})",
+                value=f"{wins_b} Wins",
+                delta=f"{wins_b - wins_a:+d} Net" if wins_b != wins_a else "Tied",
+            )
+
+        # Plotly Comparison Chart of Margins
+        prof_metrics = duel_res.get("pillars", {}).get("Profitability", [])
+        if prof_metrics:
+            p_labels = [m["metric_label"] for m in prof_metrics if m["val_a"] is not None and m["val_b"] is not None]
+            p_vals_a = [m["val_a"] * 100 if abs(m["val_a"]) <= 1.5 else m["val_a"] for m in prof_metrics if m["val_a"] is not None and m["val_b"] is not None]
+            p_vals_b = [m["val_b"] * 100 if abs(m["val_b"]) <= 1.5 else m["val_b"] for m in prof_metrics if m["val_a"] is not None and m["val_b"] is not None]
+
+            fig_duel = go.Figure()
+            fig_duel.add_trace(go.Bar(
+                x=p_labels,
+                y=p_vals_a,
+                name=f"{ticker_a}",
+                marker=dict(color="#2563EB"),
+                hovertemplate=f"<b>{ticker_a}</b> %{{x}}: %{{y:.1f}}%<extra></extra>",
+            ))
+            fig_duel.add_trace(go.Bar(
+                x=p_labels,
+                y=p_vals_b,
+                name=f"{ticker_b}",
+                marker=dict(color="#10B981"),
+                hovertemplate=f"<b>{ticker_b}</b> %{{x}}: %{{y:.1f}}%<extra></extra>",
+            ))
+            fig_duel.update_layout(
+                title=f"<b>Profitability Margins Face-Off: {ticker_a} vs {ticker_b} (FY{selected_year})</b>",
+                barmode="group",
+                xaxis_title="Metric",
+                yaxis_title="Margin / Return (%)",
+                template="plotly_white",
+                height=380,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            )
+            st.plotly_chart(fig_duel, use_container_width=True)
+
+        # Scorecard Breakdown Table
+        st.subheader("Pillar Breakdown & Metrics Scorecard")
+        table_rows = []
+        for pillar_name, metrics in duel_res.get("pillars", {}).items():
+            for m in metrics:
+                winner = m["winner"]
+                if winner == ticker_a:
+                    advantage = f"🟢 {ticker_a}"
+                elif winner == ticker_b:
+                    advantage = f"🟢 {ticker_b}"
+                elif winner == "TIE":
+                    advantage = "🤝 Tie"
+                else:
+                    advantage = "N/A"
+                table_rows.append({
+                    "Pillar": pillar_name,
+                    "Metric": m["metric_label"],
+                    f"{ticker_a} ({duel_res['name_a']})": m["formatted_a"],
+                    f"{ticker_b} ({duel_res['name_b']})": m["formatted_b"],
+                    "Advantage": advantage,
+                })
+
+        st.dataframe(table_rows, use_container_width=True, hide_index=True)
