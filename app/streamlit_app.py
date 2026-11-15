@@ -41,7 +41,7 @@ def render_trace_chart(tool_trace: list[dict]):
             ticker = res.get("ticker", "")
             metric = res.get("metric", "").replace("_", " ").title()
             is_pct = res.get("is_percentage", False)
-            years = [s["year"] for s in series]
+            years = [s.get("period") or f"FY{s.get('year')}" for s in series]
             first_val = series[0]["value"]
             if is_pct and abs(first_val) <= 1.0:
                 values = [s["value"] * 100 for s in series]
@@ -58,11 +58,11 @@ def render_trace_chart(tool_trace: list[dict]):
                 name=f"{ticker} {metric}",
                 line=dict(color="#2563EB", width=3),
                 marker=dict(size=9, color="#1D4ED8", symbol="circle"),
-                hovertemplate=f"<b>FY%{{x}}</b>: %{{y:.2f}}{suffix}<extra></extra>",
+                hovertemplate=f"<b>%{{x}}</b>: %{{y:.2f}}{suffix}<extra></extra>",
             ))
             fig.update_layout(
                 title=f"<b>{ticker} — {metric} Trend ({years[0]}–{years[-1]})</b>",
-                xaxis_title="Fiscal Year",
+                xaxis_title="Period",
                 yaxis_title=f"{metric} ({suffix})" if suffix else metric,
                 template="plotly_white",
                 margin=dict(l=40, r=40, t=50, b=40),
@@ -214,7 +214,7 @@ with tab_visualizer:
     st.subheader("Historical Multi-Year Financial Visualizer")
     st.caption("Interactively inspect 7-year metric trajectories directly from verified SEC XBRL filings.")
 
-    col1, col2, col3 = st.columns([1, 1.5, 1])
+    col1, col2, col3, col4 = st.columns([1, 1.2, 1.3, 1])
     ticker_list = [c["ticker"] for c in companies] if companies else ["AAPL", "MSFT", "NVDA", "ADBE", "INTC"]
     with col1:
         selected_ticker = st.selectbox("Company", ticker_list, index=0)
@@ -241,13 +241,22 @@ with tab_visualizer:
         selected_metric = METRIC_OPTIONS[selected_metric_label]
 
     with col3:
+        horizon = st.radio("Time Horizon", ["Annual (10-K)", "Quarterly (10-Q)", "Trailing 12M (TTM)"], horizontal=True)
+        if horizon == "Quarterly (10-Q)":
+            period_type = "quarterly"
+        elif horizon == "Trailing 12M (TTM)":
+            period_type = "ttm"
+        else:
+            period_type = "annual"
+
+    with col4:
         chart_type = st.radio("Chart Type", ["Line with Markers", "Bar Chart"], horizontal=True)
 
     if selected_ticker and selected_metric:
-        history = tool_get_metric_history(selected_ticker, selected_metric)
+        history = tool_get_metric_history(selected_ticker, selected_metric, period_type=period_type)
         series = history.get("series", [])
         if series:
-            years = [s["year"] for s in series]
+            years = [s.get("period") or f"FY{s['year']}" for s in series]
             is_pct = history.get("is_percentage", False)
             first_val = series[0]["value"]
             if is_pct and abs(first_val) <= 1.0:
@@ -262,18 +271,18 @@ with tab_visualizer:
             latest_val = series[-1]["formatted"]
             min_val = min(values)
             max_val = max(values)
-            min_year = [s["year"] for i, s in enumerate(series) if values[i] == min_val][0]
-            max_year = [s["year"] for i, s in enumerate(series) if values[i] == max_val][0]
+            min_year = [years[i] for i, s in enumerate(series) if values[i] == min_val][0]
+            max_year = [years[i] for i, s in enumerate(series) if values[i] == max_val][0]
 
             with m1:
-                st.metric(label=f"Latest (FY{years[-1]})", value=latest_val)
+                st.metric(label=f"Latest ({years[-1]})", value=latest_val)
             with m2:
-                st.metric(label="7-Year High", value=f"{max_val:.2f}{suffix} (FY{max_year})")
+                st.metric(label="Period High", value=f"{max_val:.2f}{suffix} ({max_year})")
             with m3:
-                st.metric(label="7-Year Low", value=f"{min_val:.2f}{suffix} (FY{min_year})")
+                st.metric(label="Period Low", value=f"{min_val:.2f}{suffix} ({min_year})")
             with m4:
                 diff = values[-1] - values[0]
-                st.metric(label="Net Change (FY18→24)", value=f"{diff:+.2f}{suffix}")
+                st.metric(label=f"Net Change ({years[0]}→{years[-1]})", value=f"{diff:+.2f}{suffix}")
 
             # Plotly Chart
             fig = go.Figure()
@@ -282,7 +291,7 @@ with tab_visualizer:
                     x=years,
                     y=values,
                     marker=dict(color="#3B82F6"),
-                    hovertemplate=f"<b>FY%{{x}}</b>: %{{y:.2f}}{suffix}<extra></extra>",
+                    hovertemplate=f"<b>%{{x}}</b>: %{{y:.2f}}{suffix}<extra></extra>",
                 ))
             else:
                 fig.add_trace(go.Scatter(
@@ -290,13 +299,13 @@ with tab_visualizer:
                     y=values,
                     mode="lines+markers",
                     line=dict(color="#2563EB", width=3.5),
-                    marker=dict(size=10, color="#1D4ED8"),
-                    hovertemplate=f"<b>FY%{{x}}</b>: %{{y:.2f}}{suffix}<extra></extra>",
+                    marker=dict(size=8, color="#1D4ED8"),
+                    hovertemplate=f"<b>%{{x}}</b>: %{{y:.2f}}{suffix}<extra></extra>",
                 ))
 
             fig.update_layout(
-                title=f"<b>{selected_ticker} — {selected_metric_label} ({years[0]}–{years[-1]})</b>",
-                xaxis_title="Fiscal Year",
+                title=f"<b>{selected_ticker} — {selected_metric_label} [{horizon}] ({years[0]}–{years[-1]})</b>",
+                xaxis_title="Period",
                 yaxis_title=f"{selected_metric_label} ({suffix})" if suffix else selected_metric_label,
                 template="plotly_white",
                 height=420,
@@ -306,7 +315,7 @@ with tab_visualizer:
             # Data Table
             with st.expander("View Underlying Data Table"):
                 st.dataframe(
-                    [{"Fiscal Year": f"FY{s['year']}", "Raw Value": s["value"], "Formatted Value": s["formatted"]} for s in series],
+                    [{"Period": years[i], "Raw Value": s["value"], "Formatted Value": s["formatted"]} for i, s in enumerate(series)],
                     use_container_width=True,
                 )
         else:

@@ -31,15 +31,21 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "get_metric_history",
-            "description": "Get multi-year historical trend data (e.g. 2018-2024) for a financial metric, ratio, or score. "
-                           "Use this for ANY question asking about trends, history, progression over time, or charts/graphs.",
+            "description": "Get historical trend data (multi-year or multi-quarter) for a financial metric, ratio, or score. "
+                           "Supports annual (10-K), quarterly (10-Q), and Trailing Twelve Months (TTM) time granularities. "
+                           "Use this for ANY question asking about trends, history, quarterly progressions, or charts/graphs.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "ticker": {"type": "string", "description": "Company ticker, e.g. AAPL"},
                     "metric": {"type": "string", "description": "Ratio or line item name, e.g. gross_margin, roe, revenue, altman_z"},
                     "start_year": {"type": "integer", "description": "Start fiscal year (default 2018)"},
-                    "end_year": {"type": "integer", "description": "End fiscal year (default 2024)"},
+                    "end_year": {"type": "integer", "description": "End fiscal year (default 2026)"},
+                    "period_type": {
+                        "type": "string",
+                        "enum": ["annual", "quarterly", "ttm"],
+                        "description": "Time granularity: 'annual' (default 10-K), 'quarterly' (discrete Form 10-Q quarters), or 'ttm' (Trailing Twelve Months rolling)",
+                    },
                 },
                 "required": ["ticker", "metric"],
             },
@@ -287,10 +293,26 @@ def tool_get_metric_history(
     ticker: str,
     metric: str,
     start_year: int = 2018,
-    end_year: int = 2024,
+    end_year: int = 2026,
+    period_type: str = "annual",
 ) -> dict[str, Any]:
     metric = _resolve_metric(metric)
     ticker = (ticker or "").upper().strip()
+
+    if (period_type or "").lower().strip() in ("quarterly", "ttm"):
+        from finchat.engine.quarterly import get_quarterly_metric_series
+
+        q_res = get_quarterly_metric_series(ticker, metric, period_type.lower().strip())
+        series = q_res.get("series", [])
+        if series:
+            q_res["year_range"] = f"{series[0]['period']}–{series[-1]['period']}"
+            q_res["source"] = {
+                "type": "structured_lookup",
+                "table": f"quarterly_{'ratios' if period_type.lower().strip() == 'ttm' else 'statements/ratios'} (SEC Form 10-Q)",
+                "ticker": ticker,
+            }
+            return q_res
+
     with get_db() as con:
         years = get_available_years(con, ticker)
         if not years:
@@ -546,7 +568,8 @@ TOOL_IMPLS = {
         args.get("ticker", ""),
         args.get("metric", ""),
         args.get("start_year", 2018),
-        args.get("end_year", 2024),
+        args.get("end_year", 2026),
+        args.get("period_type", "annual"),
     ),
     "compare_companies": lambda args: tool_compare_companies(
         args.get("ticker_a", ""),

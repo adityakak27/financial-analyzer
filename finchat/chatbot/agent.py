@@ -167,7 +167,14 @@ class FinChatAgent:
         if not ticker:
             ticker = self.state.current_ticker or "AAPL"
         metric = extract_metric_hint(question) or "gross_margin"
-        history = tool_get_metric_history(ticker, metric)
+
+        period_type = "annual"
+        if re.search(r"\bttm\b|trailing twelve months", question, re.I):
+            period_type = "ttm"
+        elif re.search(r"\bquarter|quarterly|10-?q|q1|q2|q3|q4\b", question, re.I):
+            period_type = "quarterly"
+
+        history = tool_get_metric_history(ticker, metric, period_type=period_type)
         series = history.get("series", [])
         if not series:
             return AgentResponse(
@@ -179,28 +186,32 @@ class FinChatAgent:
 
         cname = UNIVERSE.get(ticker, ticker)
         display_m = metric.replace("_", " ")
+        span_str = history.get("year_range") or (f"{series[0]['year']}–{series[-1]['year']}" if "year" in series[0] else "")
+        label_prefix = f"{period_type.upper()} " if period_type != "annual" else ""
         lines = [
-            f"**{cname} ({ticker}) {display_m} trend ({series[0]['year']}–{series[-1]['year']}):**",
+            f"**{cname} ({ticker}) {display_m} {label_prefix}trend ({span_str}):**",
             "",
         ]
-        for s in series:
-            lines.append(f"- **FY{s['year']}**: {s['formatted']}")
+        display_series = series[-12:] if len(series) > 12 else series
+        for s in display_series:
+            p_label = s.get("period") or f"FY{s['year']}"
+            lines.append(f"- **{p_label}**: {s['formatted']}")
 
         vals = [s["value"] for s in series]
         min_v = min(vals)
         max_v = max(vals)
-        min_y = [s["year"] for s in series if s["value"] == min_v][0]
-        max_y = [s["year"] for s in series if s["value"] == max_v][0]
+        min_p = [s.get("period") or f"FY{s['year']}" for s in series if s["value"] == min_v][0]
+        max_p = [s.get("period") or f"FY{s['year']}" for s in series if s["value"] == max_v][0]
         lines.append("")
         lines.append(
-            f"- **Range**: Low of {format_metric_value(metric, min_v)} (FY{min_y}) to High of {format_metric_value(metric, max_v)} (FY{max_y})."
+            f"- **Historical Range**: Low of {format_metric_value(metric, min_v)} ({min_p}) to High of {format_metric_value(metric, max_v)} ({max_p})."
         )
 
         citations = [
-            {"type": "structured_lookup", "table": "ratios/statements", "ticker": ticker, "metric": metric}
+            {"type": "structured_lookup", "table": f"{period_type}_ratios/statements", "ticker": ticker, "metric": metric, "fy": span_str}
         ]
         tool_trace = [
-            {"name": "get_metric_history", "args": {"ticker": ticker, "metric": metric}, "result": history}
+            {"name": "get_metric_history", "args": {"ticker": ticker, "metric": metric, "period_type": period_type}, "result": history}
         ]
         return AgentResponse(
             question,

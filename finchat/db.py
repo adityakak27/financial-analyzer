@@ -34,6 +34,29 @@ CREATE TABLE IF NOT EXISTS ratios (
     PRIMARY KEY (ticker, fy, metric)
 );
 
+CREATE TABLE IF NOT EXISTS quarterly_statements (
+    ticker TEXT NOT NULL,
+    fy     INTEGER NOT NULL,
+    fq     TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    value  REAL,
+    tag    TEXT,
+    accession TEXT,
+    filed  TEXT,
+    end_date TEXT,
+    PRIMARY KEY (ticker, fy, fq, metric)
+);
+
+CREATE TABLE IF NOT EXISTS quarterly_ratios (
+    ticker TEXT NOT NULL,
+    fy     INTEGER NOT NULL,
+    fq     TEXT NOT NULL,
+    period_type TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    value  REAL,
+    PRIMARY KEY (ticker, fy, fq, period_type, metric)
+);
+
 CREATE TABLE IF NOT EXISTS scores (
     ticker TEXT NOT NULL,
     fy     INTEGER NOT NULL,

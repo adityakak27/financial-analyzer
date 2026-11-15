@@ -39,7 +39,7 @@ SCORE_WORDS = re.compile(r"\b(altman|z[- ]?score|piotroski|f[- ]?score|beneish|m
 
 
 TREND_PATTERNS = re.compile(
-    r"\b(trend|trends|trending|history|historical|over time|across years|multi[- ]year|5[- ]year|7[- ]year|graph|plot|chart)\b",
+    r"\b(trend|trends|trending|history|historical|over time|across years|multi[- ]year|5[- ]year|7[- ]year|graph|plot|chart|quarterly|quarters|quarter|q1|q2|q3|q4|ttm|trailing twelve months)\b",
     re.I,
 )
 
