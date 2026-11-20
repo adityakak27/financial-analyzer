@@ -27,4 +27,16 @@ export interface ChatMessage {
   citations?: Citation[];
   toolTrace?: ToolTraceEntry[];
   pending?: boolean;
+  ts?: number;
+  liked?: boolean;
+  disliked?: boolean;
+}
+
+export interface Conversation {
+  id: string;
+  sessionId: string | null;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
 }

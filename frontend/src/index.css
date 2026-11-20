@@ -210,24 +210,77 @@ button {
   min-height: 0;
 }
 
+.sidebar-recent-row {
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+}
+
+.sidebar-recent-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-recent-row.active {
+  background: var(--accent-soft);
+}
+
+.sidebar-recent-row.active .sidebar-recent-item {
+  color: var(--accent-text);
+}
+
 .sidebar-recent-item {
-  display: block;
-  width: 100%;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
   text-align: left;
-  padding: 7px 10px;
+  padding: 7px 4px 7px 10px;
   border-radius: 8px;
   background: transparent;
   border: none;
   color: var(--text-on-sidebar-dim);
   font-size: 13px;
+}
+
+.sidebar-recent-title {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .sidebar-recent-item:hover {
-  background: rgba(255, 255, 255, 0.06);
   color: var(--text-on-sidebar);
+}
+
+.sidebar-recent-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  margin-right: 6px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-on-sidebar-dim);
+  opacity: 0;
+}
+
+.sidebar-recent-row:hover .sidebar-recent-delete,
+.sidebar-recent-row.active .sidebar-recent-delete {
+  opacity: 1;
+}
+
+.sidebar-recent-delete:hover {
+  background: var(--negative-soft);
+  color: var(--negative);
+}
+
+.sidebar-no-results {
+  padding: 10px;
+  font-size: 12.5px;
+  color: var(--text-on-sidebar-dim);
 }
 
 .sidebar-footer {

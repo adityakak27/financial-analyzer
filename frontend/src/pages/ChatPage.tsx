@@ -3,8 +3,9 @@ import { api } from "../api/client";
 import Markdown from "../components/Markdown";
 import OutputsPanel from "../components/OutputsPanel";
 import { ArrowUpIcon, CopyIcon, MicIcon, PlusIcon, RetryIcon, ThumbsDownIcon, ThumbsUpIcon } from "../components/Icons";
-import type { ChatMessage, Citation } from "../types";
+import type { Citation } from "../types";
 import { useSelection } from "../context/SelectionContext";
+import { useChatHistory } from "../context/ChatHistoryContext";
 
 const SUGGESTIONS = [
   "What was Apple's gross margin in FY2023?",
@@ -32,83 +33,54 @@ function timeAgo(ts: number): string {
   return `${d} day${d === 1 ? "" : "s"} ago`;
 }
 
-interface Turn extends ChatMessage {
-  ts: number;
-  liked?: boolean;
-  disliked?: boolean;
-}
-
 export default function ChatPage() {
-  const { llmAvailable, ticker, year, addRecentQuestion, chatSignal } = useSelection();
-  const [messages, setMessages] = useState<Turn[]>([]);
+  const { llmAvailable, ticker, year } = useSelection();
+  const { activeConversation, startNewChat, ensureActiveConversation, setConversationMessages, setConversationSessionId } =
+    useChatHistory();
   const [input, setInput] = useState("");
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const lastSignalNonce = useRef<number | null>(null);
+
+  const messages = activeConversation?.messages ?? [];
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [messages.length, messages[messages.length - 1]?.content]);
 
   async function send(question: string) {
     const q = question.trim();
     if (!q || sending) return;
-    addRecentQuestion(q);
-    setMessages((m) => [
-      ...m,
-      { role: "user", content: q, ts: Date.now() },
-      { role: "assistant", content: "", pending: true, ts: Date.now() },
-    ]);
+    const baseMessages = activeConversation?.messages ?? [];
+    const priorSessionId = activeConversation?.sessionId ?? null;
+    const id = ensureActiveConversation(q);
+    const withPending = [
+      ...baseMessages,
+      { role: "user" as const, content: q, ts: Date.now() },
+      { role: "assistant" as const, content: "", pending: true, ts: Date.now() },
+    ];
+    setConversationMessages(id, withPending);
     setInput("");
     setSending(true);
     try {
-      const res = await api.chat({ question: q, session_id: sessionId });
-      setSessionId(res.session_id);
-      setMessages((m) => {
-        const copy = [...m];
-        copy[copy.length - 1] = {
-          role: "assistant",
-          content: res.answer,
-          citations: res.citations,
-          toolTrace: res.tool_trace,
-          ts: Date.now(),
-        };
-        return copy;
-      });
+      const res = await api.chat({ question: q, session_id: priorSessionId });
+      setConversationSessionId(id, res.session_id);
+      const final = [...withPending];
+      final[final.length - 1] = {
+        role: "assistant",
+        content: res.answer,
+        citations: res.citations,
+        toolTrace: res.tool_trace,
+        ts: Date.now(),
+      };
+      setConversationMessages(id, final);
     } catch (err: any) {
-      setMessages((m) => {
-        const copy = [...m];
-        copy[copy.length - 1] = { role: "assistant", content: `⚠️ ${err.message || "Request failed."}`, ts: Date.now() };
-        return copy;
-      });
+      const final = [...withPending];
+      final[final.length - 1] = { role: "assistant", content: `⚠️ ${err.message || "Request failed."}`, ts: Date.now() };
+      setConversationMessages(id, final);
     } finally {
       setSending(false);
     }
   }
-
-  async function handleReset() {
-    if (sessionId) {
-      try {
-        await api.chatReset(sessionId);
-      } catch {
-        /* no-op */
-      }
-    }
-    setMessages([]);
-    setSessionId(null);
-  }
-
-  useEffect(() => {
-    if (!chatSignal || chatSignal.nonce === lastSignalNonce.current) return;
-    lastSignalNonce.current = chatSignal.nonce;
-    if (chatSignal.type === "reset") {
-      handleReset();
-    } else if (chatSignal.type === "ask" && chatSignal.question) {
-      handleReset().then(() => send(chatSignal.question!));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatSignal]);
 
   function retryLast() {
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
@@ -116,12 +88,11 @@ export default function ChatPage() {
   }
 
   function toggleReaction(idx: number, kind: "liked" | "disliked") {
-    setMessages((m) => {
-      const copy = [...m];
-      const other = kind === "liked" ? "disliked" : "liked";
-      copy[idx] = { ...copy[idx], [kind]: !copy[idx][kind], [other]: false };
-      return copy;
-    });
+    if (!activeConversation) return;
+    const copy = [...activeConversation.messages];
+    const other = kind === "liked" ? "disliked" : "liked";
+    copy[idx] = { ...copy[idx], [kind]: !copy[idx][kind], [other]: false };
+    setConversationMessages(activeConversation.id, copy);
   }
 
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant" && !m.pending);
@@ -196,7 +167,7 @@ export default function ChatPage() {
                         <RetryIcon />
                       </button>
                     )}
-                    <span className="msg-timestamp">{timeAgo(m.ts)}</span>
+                    <span className="msg-timestamp">{timeAgo(m.ts ?? Date.now())}</span>
                   </div>
                 )}
               </div>
@@ -230,7 +201,7 @@ export default function ChatPage() {
             />
             <div className="chat-input-toolbar">
               <div className="chat-input-toolbar-left">
-                <button className="icon-btn-round" title="New chat" onClick={handleReset}>
+                <button className="icon-btn-round" title="New chat" onClick={startNewChat}>
                   <PlusIcon />
                 </button>
                 <button className="icon-btn-round" title="Voice input (not available)" disabled>

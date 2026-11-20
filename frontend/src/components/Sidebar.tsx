@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSelection } from "../context/SelectionContext";
+import { useChatHistory } from "../context/ChatHistoryContext";
 import {
   ChatIcon,
   ClockIcon,
@@ -10,6 +11,7 @@ import {
   PlusIcon,
   ResearchIcon,
   SearchIcon,
+  TrashIcon,
   ValuationIcon,
 } from "./Icons";
 
@@ -23,32 +25,34 @@ const LINKS = [
 ];
 
 export default function Sidebar() {
-  const {
-    companies,
-    ticker,
-    setTicker,
-    years,
-    year,
-    setYear,
-    llmAvailable,
-    recentQuestions,
-    askInChat,
-    requestNewChat,
-  } = useSelection();
+  const { companies, ticker, setTicker, years, year, setYear, llmAvailable } = useSelection();
+  const { conversations, activeId, selectConversation, startNewChat, deleteConversation } = useChatHistory();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
-  const visibleLinks = LINKS.filter((l) => l.label.toLowerCase().includes(query.toLowerCase()));
-  const visibleRecents = recentQuestions.filter((q) => q.toLowerCase().includes(query.toLowerCase()));
+  const q = query.trim().toLowerCase();
+  const visibleLinks = LINKS.filter((l) => l.label.toLowerCase().includes(q));
+  const visibleConversations = [...conversations]
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .filter((c) => {
+      if (!q) return true;
+      if (c.title.toLowerCase().includes(q)) return true;
+      return c.messages.some((m) => m.content.toLowerCase().includes(q));
+    });
 
   function handleNewChat() {
-    requestNewChat();
+    startNewChat();
     navigate("/");
   }
 
-  function handleRecentClick(q: string) {
+  function handleSelect(id: string) {
+    selectConversation(id);
     navigate("/");
-    askInChat(q);
+  }
+
+  function handleDelete(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+    deleteConversation(id);
   }
 
   return (
@@ -65,43 +69,46 @@ export default function Sidebar() {
 
       <div className="sidebar-search">
         <SearchIcon className="sidebar-icon" />
-        <input
-          placeholder="Search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <input placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
 
       <nav className="sidebar-nav">
         {visibleLinks.map((l) => (
-          <NavLink
-            key={l.to}
-            to={l.to}
-            className={({ isActive }) => "sidebar-link" + (isActive ? " active" : "")}
-          >
+          <NavLink key={l.to} to={l.to} className={({ isActive }) => "sidebar-link" + (isActive ? " active" : "")}>
             <l.icon className="sidebar-icon" />
             {l.label}
           </NavLink>
         ))}
       </nav>
 
-      {visibleRecents.length > 0 && (
+      {visibleConversations.length > 0 && (
         <>
           <div className="sidebar-section-label">Recents</div>
           <div className="sidebar-recents">
-            {visibleRecents.map((q, i) => (
-              <button
-                key={i}
-                className="sidebar-recent-item"
-                title={q}
-                onClick={() => handleRecentClick(q)}
+            {visibleConversations.map((c) => (
+              <div
+                key={c.id}
+                className={"sidebar-recent-row" + (c.id === activeId ? " active" : "")}
               >
-                <ClockIcon className="sidebar-icon" style={{ marginRight: 8, opacity: 0.6 }} />
-                {q}
-              </button>
+                <button className="sidebar-recent-item" title={c.title} onClick={() => handleSelect(c.id)}>
+                  <ClockIcon className="sidebar-icon" style={{ marginRight: 8, opacity: 0.6, flexShrink: 0 }} />
+                  <span className="sidebar-recent-title">{c.title}</span>
+                </button>
+                <button
+                  className="sidebar-recent-delete"
+                  title="Delete chat"
+                  onClick={(e) => handleDelete(e, c.id)}
+                >
+                  <TrashIcon width={14} height={14} />
+                </button>
+              </div>
             ))}
           </div>
         </>
+      )}
+
+      {q && visibleLinks.length === 0 && visibleConversations.length === 0 && (
+        <div className="sidebar-no-results">No matches for "{query}"</div>
       )}
 
       <div className="sidebar-footer">

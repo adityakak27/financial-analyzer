@@ -115,3 +115,9 @@ export const ArrowUpIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 19V5M5 12l7-7 7 7" />
   </svg>
 );
+
+export const TrashIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+  </svg>
+);

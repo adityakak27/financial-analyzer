@@ -13,11 +13,6 @@ interface SelectionState {
   year: number | undefined;
   setYear: (y: number | undefined) => void;
   llmAvailable: boolean | null;
-  recentQuestions: string[];
-  addRecentQuestion: (q: string) => void;
-  chatSignal: { type: "ask" | "reset"; question?: string; nonce: number } | null;
-  askInChat: (q: string) => void;
-  requestNewChat: () => void;
 }
 
 const SelectionContext = createContext<SelectionState | null>(null);
@@ -30,20 +25,6 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
   const [years, setYears] = useState<number[]>([]);
   const [year, setYear] = useState<number | undefined>(undefined);
   const [llmAvailable, setLlmAvailable] = useState<boolean | null>(null);
-  const [recentQuestions, setRecentQuestions] = useState<string[]>([]);
-  const [chatSignal, setChatSignal] = useState<SelectionState["chatSignal"]>(null);
-
-  function addRecentQuestion(q: string) {
-    setRecentQuestions((prev) => [q, ...prev.filter((p) => p !== q)].slice(0, 12));
-  }
-
-  function askInChat(q: string) {
-    setChatSignal({ type: "ask", question: q, nonce: Date.now() });
-  }
-
-  function requestNewChat() {
-    setChatSignal({ type: "reset", nonce: Date.now() });
-  }
 
   useEffect(() => {
     api
@@ -84,13 +65,8 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
       year,
       setYear,
       llmAvailable,
-      recentQuestions,
-      addRecentQuestion,
-      chatSignal,
-      askInChat,
-      requestNewChat,
     }),
-    [companies, loadingCompanies, ticker, tickerB, years, year, llmAvailable, recentQuestions, chatSignal],
+    [companies, loadingCompanies, ticker, tickerB, years, year, llmAvailable],
   );
 
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>;
