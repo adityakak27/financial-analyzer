@@ -18,6 +18,7 @@ export interface Citation {
 export interface ToolTraceEntry {
   name: string;
   args: Record<string, any>;
+  result?: Record<string, any>;
 }
 
 export interface ChatMessage {

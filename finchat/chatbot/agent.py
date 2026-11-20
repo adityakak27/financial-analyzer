@@ -32,7 +32,7 @@ class AgentResponse:
             "mode": self.mode,
             "citations": self.citations,
             "tool_trace": [
-                {k: t[k] for k in ("name", "args")} for t in self.tool_trace
+                {k: t[k] for k in ("name", "args", "result")} for t in self.tool_trace
             ],
         }
 

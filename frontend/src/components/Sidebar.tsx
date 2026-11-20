@@ -1,17 +1,55 @@
-import { NavLink } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useSelection } from "../context/SelectionContext";
+import {
+  ChatIcon,
+  ClockIcon,
+  CompareIcon,
+  DashboardIcon,
+  FilingsIcon,
+  PlusIcon,
+  ResearchIcon,
+  SearchIcon,
+  ValuationIcon,
+} from "./Icons";
 
 const LINKS = [
-  { to: "/", label: "Chat", icon: "💬" },
-  { to: "/dashboard", label: "Company Dashboard", icon: "📊" },
-  { to: "/compare", label: "Compare / Duel", icon: "⚖️" },
-  { to: "/valuation", label: "DCF Valuation", icon: "📈" },
-  { to: "/research", label: "Research Report", icon: "🗂️" },
-  { to: "/filings", label: "Filings Search", icon: "🔎" },
+  { to: "/", label: "Chat", icon: ChatIcon },
+  { to: "/dashboard", label: "Company Dashboard", icon: DashboardIcon },
+  { to: "/compare", label: "Compare / Duel", icon: CompareIcon },
+  { to: "/valuation", label: "DCF Valuation", icon: ValuationIcon },
+  { to: "/research", label: "Research Report", icon: ResearchIcon },
+  { to: "/filings", label: "Filings Search", icon: FilingsIcon },
 ];
 
 export default function Sidebar() {
-  const { companies, ticker, setTicker, years, year, setYear, llmAvailable } = useSelection();
+  const {
+    companies,
+    ticker,
+    setTicker,
+    years,
+    year,
+    setYear,
+    llmAvailable,
+    recentQuestions,
+    askInChat,
+    requestNewChat,
+  } = useSelection();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const visibleLinks = LINKS.filter((l) => l.label.toLowerCase().includes(query.toLowerCase()));
+  const visibleRecents = recentQuestions.filter((q) => q.toLowerCase().includes(query.toLowerCase()));
+
+  function handleNewChat() {
+    requestNewChat();
+    navigate("/");
+  }
+
+  function handleRecentClick(q: string) {
+    navigate("/");
+    askInChat(q);
+  }
 
   return (
     <aside className="sidebar">
@@ -20,20 +58,53 @@ export default function Sidebar() {
         Equity Research Copilot
       </div>
 
+      <button className="sidebar-action" onClick={handleNewChat}>
+        <PlusIcon className="sidebar-icon" />
+        New chat
+      </button>
+
+      <div className="sidebar-search">
+        <SearchIcon className="sidebar-icon" />
+        <input
+          placeholder="Search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
       <nav className="sidebar-nav">
-        {LINKS.map((l) => (
+        {visibleLinks.map((l) => (
           <NavLink
             key={l.to}
             to={l.to}
             className={({ isActive }) => "sidebar-link" + (isActive ? " active" : "")}
           >
-            <span>{l.icon}</span>
+            <l.icon className="sidebar-icon" />
             {l.label}
           </NavLink>
         ))}
       </nav>
 
-      <div className="sidebar-picker">
+      {visibleRecents.length > 0 && (
+        <>
+          <div className="sidebar-section-label">Recents</div>
+          <div className="sidebar-recents">
+            {visibleRecents.map((q, i) => (
+              <button
+                key={i}
+                className="sidebar-recent-item"
+                title={q}
+                onClick={() => handleRecentClick(q)}
+              >
+                <ClockIcon className="sidebar-icon" style={{ marginRight: 8, opacity: 0.6 }} />
+                {q}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="sidebar-footer">
         <label htmlFor="company-select">Company</label>
         <select
           id="company-select"
@@ -63,8 +134,9 @@ export default function Sidebar() {
         </select>
 
         <div className="sidebar-status">
+          <span className="sidebar-avatar">ER</span>
+          <span style={{ flex: 1 }}>Equity Copilot</span>
           <span className={"status-dot" + (llmAvailable ? "" : " down")} />
-          {llmAvailable === null ? "Checking backend…" : llmAvailable ? "LLM connected" : "LLM key missing"}
         </div>
       </div>
     </aside>
