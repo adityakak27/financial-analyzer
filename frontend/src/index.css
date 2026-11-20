@@ -983,6 +983,50 @@ tr.row-link:hover {
   margin: 10px 0 2px;
 }
 
+.chart-zoom-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 2px;
+}
+
+.chart-zoom-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.chart-zoom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.chart-zoom-btn:hover:not(:disabled) {
+  background: var(--bg-elevated-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.chart-zoom-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.heatmap-zoom-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .heatmap-table {
   font-size: 11px;
   width: auto;

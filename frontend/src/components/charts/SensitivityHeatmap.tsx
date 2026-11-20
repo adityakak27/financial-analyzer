@@ -1,4 +1,9 @@
 import { useState } from "react";
+import { ZoomInIcon, ZoomOutIcon, ZoomResetIcon } from "../Icons";
+
+const MIN_SCALE = 0.75;
+const MAX_SCALE = 1.75;
+const DEFAULT_SCALE = 1;
 
 interface SensitivityMatrix {
   wacc_axis: number[];
@@ -8,6 +13,7 @@ interface SensitivityMatrix {
 
 export default function SensitivityHeatmap({ matrix }: { matrix: SensitivityMatrix }) {
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
+  const [scale, setScale] = useState(DEFAULT_SCALE);
 
   if (!matrix || !matrix.rows?.length) return null;
 
@@ -28,8 +34,43 @@ export default function SensitivityHeatmap({ matrix }: { matrix: SensitivityMatr
   }
 
   return (
-    <div style={{ overflowX: "auto", width: "100%", maxWidth: "100%" }}>
-    <table className="data-table heatmap-table" style={{ width: "max-content" }}>
+    <div className="heatmap-zoom-wrap">
+      <div className="chart-zoom-controls">
+        <span className="output-chart-label" style={{ margin: 0 }}>
+          Scroll or zoom to see all columns
+        </span>
+        <div className="chart-zoom-buttons">
+          <button
+            className="chart-zoom-btn"
+            title="Zoom out"
+            disabled={scale <= MIN_SCALE}
+            onClick={() => setScale((s) => Math.max(MIN_SCALE, +(s - 0.15).toFixed(2)))}
+          >
+            <ZoomOutIcon width={13} height={13} />
+          </button>
+          <button
+            className="chart-zoom-btn"
+            title="Reset zoom"
+            disabled={scale === DEFAULT_SCALE}
+            onClick={() => setScale(DEFAULT_SCALE)}
+          >
+            <ZoomResetIcon width={13} height={13} />
+          </button>
+          <button
+            className="chart-zoom-btn"
+            title="Zoom in"
+            disabled={scale >= MAX_SCALE}
+            onClick={() => setScale((s) => Math.min(MAX_SCALE, +(s + 0.15).toFixed(2)))}
+          >
+            <ZoomInIcon width={13} height={13} />
+          </button>
+        </div>
+      </div>
+      <div style={{ overflowX: "auto", width: "100%", maxWidth: "100%" }}>
+    <table
+      className="data-table heatmap-table"
+      style={{ width: "max-content", fontSize: `${11 * scale}px` }}
+    >
       <thead>
         <tr>
           <th style={{ whiteSpace: "nowrap" }}>WACC \ Growth</th>
@@ -74,6 +115,7 @@ export default function SensitivityHeatmap({ matrix }: { matrix: SensitivityMatr
         ))}
       </tbody>
     </table>
+      </div>
     </div>
   );
 }

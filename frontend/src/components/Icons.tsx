@@ -121,3 +121,24 @@ export const TrashIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
   </svg>
 );
+
+export const ZoomInIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.3-4.3M11 8v6M8 11h6" />
+  </svg>
+);
+
+export const ZoomOutIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.3-4.3M8 11h6" />
+  </svg>
+);
+
+export const ZoomResetIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M3 12a9 9 0 0 1 15.3-6.4M21 12a9 9 0 0 1-15.3 6.4" />
+    <path d="M18 3v4h-4M6 21v-4h4" />
+  </svg>
+);
