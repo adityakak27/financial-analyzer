@@ -900,13 +900,14 @@ tr.row-link:hover {
 /* ---------- Outputs rail ---------- */
 
 .outputs-rail {
-  width: 320px;
+  width: 380px;
   flex-shrink: 0;
   border-left: 1px solid var(--border);
   background: var(--bg-sidebar);
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
 }
 
 .outputs-header {
@@ -921,7 +922,9 @@ tr.row-link:hover {
 
 .outputs-body {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 4px 16px 20px;
   display: flex;
   flex-direction: column;
@@ -933,6 +936,7 @@ tr.row-link:hover {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 14px;
+  min-width: 0;
 }
 
 .output-card-kicker {
@@ -969,6 +973,37 @@ tr.row-link:hover {
   font-size: 12.5px;
   padding: 12px 2px;
   line-height: 1.5;
+}
+
+.output-chart-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin: 10px 0 2px;
+}
+
+.heatmap-table {
+  font-size: 11px;
+  width: auto;
+}
+
+.heatmap-table th,
+.heatmap-table td {
+  padding: 4px 7px;
+  cursor: default;
+  transition: outline-color 0.1s ease;
+  white-space: nowrap;
+}
+
+.heatmap-table td.hm-hover,
+.heatmap-table th.hm-hover {
+  outline: 1.5px solid var(--accent);
+  outline-offset: -1.5px;
+}
+
+.heatmap-table td.hm-base {
+  font-weight: 700;
 }
 
 /* ---------- Misc ---------- */

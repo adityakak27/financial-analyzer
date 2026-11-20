@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "../api/client";
 import MetricTile from "../components/MetricTile";
+import WaterfallChart from "../components/charts/WaterfallChart";
+import DcfSensitivityChart from "../components/charts/DcfSensitivityChart";
+import SensitivityHeatmap from "../components/charts/SensitivityHeatmap";
 import { useSelection } from "../context/SelectionContext";
 
 function fmtUsd(v: number | null | undefined): string {
@@ -43,8 +45,6 @@ export default function ValuationPage() {
   }
 
   const sens = result?.sensitivity_matrix;
-  const baseWaccIdx = sens ? Math.floor(sens.wacc_axis.length / 2) : -1;
-  const baseGrowthIdx = sens ? Math.floor(sens.growth_axis.length / 2) : -1;
 
   return (
     <div className="page">
@@ -124,53 +124,17 @@ export default function ValuationPage() {
 
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-title">Valuation Bridge (Enterprise → Equity, $B)</div>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={result.waterfall} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="label" tick={{ fontSize: 10.5, fill: "var(--text-secondary)" }} interval={0} angle={-12} textAnchor="end" height={60} />
-                <YAxis tick={{ fontSize: 11, fill: "var(--text-secondary)" }} />
-                <Tooltip
-                  contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                />
-                <Bar dataKey="value" fill="var(--accent)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <WaterfallChart steps={result.waterfall} height={240} />
+          </div>
+
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-title">Implied Share Price vs WACC (click a line in the legend to isolate it)</div>
+            <DcfSensitivityChart matrix={sens} height={280} />
           </div>
 
           <div className="card">
-            <div className="card-title">Sensitivity: Implied Share Price (WACC × Terminal Growth)</div>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>WACC \ Growth</th>
-                  {sens.growth_axis.map((g: number, gi: number) => (
-                    <th className="num" key={gi}>
-                      {g.toFixed(2)}%
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sens.rows.map((row: any, ri: number) => (
-                  <tr key={ri}>
-                    <td>{row.wacc.toFixed(2)}%</td>
-                    {row.values.map((v: any, ci: number) => (
-                      <td
-                        className="num"
-                        key={ci}
-                        style={
-                          ri === baseWaccIdx && ci === baseGrowthIdx
-                            ? { background: "var(--accent-soft)", fontWeight: 700 }
-                            : undefined
-                        }
-                      >
-                        {v.implied_share_price !== null ? `$${v.implied_share_price.toFixed(2)}` : "N/A"}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="card-title">Sensitivity Heatmap: Implied Share Price (WACC × Terminal Growth)</div>
+            <SensitivityHeatmap matrix={sens} />
           </div>
         </>
       )}

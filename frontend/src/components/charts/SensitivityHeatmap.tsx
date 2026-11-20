@@ -1,0 +1,79 @@
+import { useState } from "react";
+
+interface SensitivityMatrix {
+  wacc_axis: number[];
+  growth_axis: number[];
+  rows: { wacc: number; values: { terminal_growth: number; implied_share_price: number | null }[] }[];
+}
+
+export default function SensitivityHeatmap({ matrix }: { matrix: SensitivityMatrix }) {
+  const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
+
+  if (!matrix || !matrix.rows?.length) return null;
+
+  const allValues = matrix.rows.flatMap((r) => r.values.map((v) => v.implied_share_price)).filter((v): v is number => v !== null);
+  const min = Math.min(...allValues);
+  const max = Math.max(...allValues);
+  const baseRow = Math.floor(matrix.wacc_axis.length / 2);
+  const baseCol = Math.floor(matrix.growth_axis.length / 2);
+
+  function heat(v: number | null): string {
+    if (v === null || max === min) return "transparent";
+    const t = (v - min) / (max - min);
+    // low -> negative-tinted, high -> positive-tinted, interpolated through the accent for the middle.
+    const alpha = 0.08 + t * 0.3;
+    return t < 0.5
+      ? `rgba(224, 120, 109, ${0.08 + (0.5 - t) * 0.5})`
+      : `rgba(95, 185, 138, ${alpha})`;
+  }
+
+  return (
+    <div style={{ overflowX: "auto", width: "100%", maxWidth: "100%" }}>
+    <table className="data-table heatmap-table" style={{ width: "max-content" }}>
+      <thead>
+        <tr>
+          <th style={{ whiteSpace: "nowrap" }}>WACC \ Growth</th>
+          {matrix.growth_axis.map((g, ci) => (
+            <th
+              className={"num" + (hover?.col === ci ? " hm-hover" : "")}
+              key={ci}
+              onMouseEnter={() => setHover({ row: -1, col: ci })}
+              onMouseLeave={() => setHover(null)}
+            >
+              {g.toFixed(2)}%
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {matrix.rows.map((row, ri) => (
+          <tr key={ri} className={hover?.row === ri ? "hm-hover" : undefined}>
+            <td
+              onMouseEnter={() => setHover({ row: ri, col: -1 })}
+              onMouseLeave={() => setHover(null)}
+              className={hover?.row === ri ? "hm-hover" : undefined}
+            >
+              {row.wacc.toFixed(2)}%
+            </td>
+            {row.values.map((v, ci) => (
+              <td
+                className={
+                  "num" +
+                  (hover?.col === ci || hover?.row === ri ? " hm-hover" : "") +
+                  (ri === baseRow && ci === baseCol ? " hm-base" : "")
+                }
+                key={ci}
+                style={{ background: heat(v.implied_share_price) }}
+                onMouseEnter={() => setHover({ row: ri, col: ci })}
+                onMouseLeave={() => setHover(null)}
+              >
+                {v.implied_share_price !== null ? `$${v.implied_share_price.toFixed(2)}` : "N/A"}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    </div>
+  );
+}

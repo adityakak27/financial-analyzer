@@ -1,4 +1,9 @@
 import type { ToolTraceEntry } from "../types";
+import MetricHistoryChart from "./MetricHistoryChart";
+import WaterfallChart from "./charts/WaterfallChart";
+import DcfSensitivityChart from "./charts/DcfSensitivityChart";
+import SensitivityHeatmap from "./charts/SensitivityHeatmap";
+import CompareBarChart from "./charts/CompareBarChart";
 
 function Card({ kicker, title, value, meta }: { kicker: string; title: string; value?: string; meta?: string }) {
   return (
@@ -47,22 +52,30 @@ function renderEntry(entry: ToolTraceEntry, idx: number) {
       );
     case "get_metric_history":
       return (
-        <Card
-          key={idx}
-          kicker={`${r.ticker ?? ""} · ${r.year_range ?? ""}`}
-          title={`${r.metric ?? "metric"} history`}
-          meta={`${r.series?.length ?? 0} data points`}
-        />
+        <div className="output-card" key={idx}>
+          <div className="output-card-kicker">
+            {r.ticker ?? ""} · {r.year_range ?? ""}
+          </div>
+          <div className="output-card-title">{r.metric ?? "metric"} history</div>
+          {r.series?.length > 0 ? (
+            <MetricHistoryChart series={r.series} height={160} />
+          ) : (
+            <div className="output-card-meta">No data points returned</div>
+          )}
+        </div>
       );
     case "compare_companies":
       return (
-        <Card
-          key={idx}
-          kicker={`FY${r.year ?? ""}`}
-          title={`${r.ticker_a ?? ""} vs ${r.ticker_b ?? ""}`}
-          value={r.overall_winner ?? "—"}
-          meta={`${r.wins_a ?? 0}–${r.wins_b ?? 0}–${r.ties ?? 0}`}
-        />
+        <div className="output-card" key={idx}>
+          <div className="output-card-kicker">FY{r.year ?? ""}</div>
+          <div className="output-card-title">
+            {r.ticker_a ?? ""} vs {r.ticker_b ?? ""} — {r.overall_winner ?? "—"} ({r.wins_a ?? 0}–{r.wins_b ?? 0}–
+            {r.ties ?? 0})
+          </div>
+          {r.pillar_stats && (
+            <CompareBarChart pillarStats={r.pillar_stats} tickerA={r.ticker_a} tickerB={r.ticker_b} height={170} />
+          )}
+        </div>
       );
     case "get_peer_ranking":
       return (
@@ -94,13 +107,29 @@ function renderEntry(entry: ToolTraceEntry, idx: number) {
       );
     case "run_dcf_valuation":
       return (
-        <Card
-          key={idx}
-          kicker={`${r.ticker ?? ""} · FY${r.latest_fy ?? ""}`}
-          title="DCF valuation"
-          value={r.implied_share_price ? `$${r.implied_share_price.toFixed(2)}` : "N/A"}
-          meta={r.enterprise_value ? `EV $${(r.enterprise_value / 1e9).toFixed(1)}B` : undefined}
-        />
+        <div className="output-card" key={idx}>
+          <div className="output-card-kicker">
+            {r.ticker ?? ""} · FY{r.latest_fy ?? ""}
+          </div>
+          <div className="output-card-title">DCF valuation</div>
+          <div className="output-card-value">{r.implied_share_price ? `$${r.implied_share_price.toFixed(2)}` : "N/A"}</div>
+          {r.enterprise_value && (
+            <div className="output-card-meta">EV ${(r.enterprise_value / 1e9).toFixed(1)}B</div>
+          )}
+          {r.waterfall && (
+            <>
+              <div className="output-chart-label">Valuation bridge</div>
+              <WaterfallChart steps={r.waterfall} height={170} />
+            </>
+          )}
+          {r.sensitivity_matrix && (
+            <>
+              <div className="output-chart-label">Share price · WACC × growth (click legend to isolate)</div>
+              <DcfSensitivityChart matrix={r.sensitivity_matrix} height={180} />
+              <SensitivityHeatmap matrix={r.sensitivity_matrix} />
+            </>
+          )}
+        </div>
       );
     case "generate_equity_research":
       return (

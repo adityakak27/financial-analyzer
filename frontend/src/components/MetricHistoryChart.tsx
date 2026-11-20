@@ -1,12 +1,4 @@
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Brush, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 interface Point {
   year?: number;
@@ -15,11 +7,20 @@ interface Point {
   formatted: string;
 }
 
-export default function MetricHistoryChart({ series, height = 220 }: { series: Point[]; height?: number }) {
+export default function MetricHistoryChart({
+  series,
+  height = 220,
+  color = "var(--accent)",
+}: {
+  series: Point[];
+  height?: number;
+  color?: string;
+}) {
   if (!series || series.length === 0) {
     return <div className="empty-state">No historical series available.</div>;
   }
   const data = series.map((p) => ({ x: p.period || `FY${p.year}`, value: p.value, formatted: p.formatted }));
+  const showBrush = data.length > 5;
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
@@ -35,7 +36,17 @@ export default function MetricHistoryChart({ series, height = 220 }: { series: P
             fontSize: 12,
           }}
         />
-        <Line type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 6 }} />
+        {showBrush && (
+          <Brush
+            dataKey="x"
+            height={20}
+            stroke="var(--accent)"
+            fill="var(--bg-elevated)"
+            travellerWidth={8}
+            tickFormatter={() => ""}
+          />
+        )}
       </LineChart>
     </ResponsiveContainer>
   );
