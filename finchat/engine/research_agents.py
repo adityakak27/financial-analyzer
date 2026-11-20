@@ -12,6 +12,22 @@ from finchat.engine.ratios import YearData, compute_ratios
 from finchat.engine.scores import altman_z, beneish_m, piotroski_f
 
 
+def _fmt(val: float | None, spec: str = ".2f") -> str:
+    """Format a possibly-missing score/ratio, falling back to 'N/A' instead of crashing."""
+    return format(val, spec) if val is not None else "N/A"
+
+
+def _fmt_ratio(ratios: dict[str, float | None], key: str, spec: str = ".2f", pct: bool = False) -> str:
+    """Format a ratio that may be genuinely missing (None) rather than simply absent from the dict -
+    `ratios.get(key, 0)` does NOT catch this case, since the key is present with value None."""
+    v = ratios.get(key)
+    if v is None:
+        return "N/A"
+    if pct:
+        v = v * 100
+    return format(v, spec)
+
+
 class HeadlineMetrics(BaseModel):
     implied_share_price: Optional[float] = Field(default=None, description="DCF implied intrinsic share price")
     enterprise_value: Optional[float] = Field(default=None, description="DCF enterprise value")
@@ -141,9 +157,9 @@ class ValuationSpecialist:
             f"**Valuation & DCF Assessment for {ticker} (FY{year}):**\n"
             f"- **DCF Implied Enterprise Value**: ${ev:,.0f} (at {wacc:.1%} WACC, {g:.1%} Terminal Growth)\n"
             f"{price_line}"
-            f"\n- **Free Cash Flow Margin**: {ratios.get('fcf_margin', 0) * 100:.1f}%\n"
-            f"- **Return on Invested Capital (ROIC)**: {ratios.get('roic', 0) * 100:.1f}%\n"
-            f"- **Historical Revenue Growth**: {ratios.get('revenue_growth_pct', 0):.1f}% YoY"
+            f"\n- **Free Cash Flow Margin**: {_fmt_ratio(ratios, 'fcf_margin', '.1f', pct=True)}%\n"
+            f"- **Return on Invested Capital (ROIC)**: {_fmt_ratio(ratios, 'roic', '.1f', pct=True)}%\n"
+            f"- **Historical Revenue Growth**: {_fmt_ratio(ratios, 'revenue_growth_pct', '.1f')}% YoY"
         )
 
         return {"findings": findings, "summary": summary_text}
@@ -194,11 +210,11 @@ class ForensicAuditor:
 
         summary_text = (
             f"**Forensic Accounting & Solvency Audit for {ticker} (FY{year}):**\n"
-            f"- **Altman Z-Score**: {z_val:.2f} ({z_zone.upper()} Zone) — Solvency & Bankruptcy Risk\n"
-            f"- **Piotroski F-Score**: {f_val}/9 — Fundamental Financial Health Score\n"
-            f"- **Beneish M-Score**: {m_val:.2f} ({m_flag}) — Earnings Manipulation Risk\n"
+            f"- **Altman Z-Score**: {_fmt(z_val)} ({z_zone.upper()} Zone) — Solvency & Bankruptcy Risk\n"
+            f"- **Piotroski F-Score**: {_fmt(f_val, '.0f')}/9 — Fundamental Financial Health Score\n"
+            f"- **Beneish M-Score**: {_fmt(m_val)} ({m_flag}) — Earnings Manipulation Risk\n"
             f"- **Accrual Quality (TATA)**: {total_accruals:.3f} (Cash flow exceeds net income: {cfo > ni})\n"
-            f"- **Balance Sheet Liquidity**: Current Ratio = {ratios.get('current_ratio', 0):.2f}, Debt/Equity = {ratios.get('debt_to_equity', 0):.2f}"
+            f"- **Balance Sheet Liquidity**: Current Ratio = {_fmt_ratio(ratios, 'current_ratio')}, Debt/Equity = {_fmt_ratio(ratios, 'debt_to_equity')}"
         )
 
         return {"findings": findings, "summary": summary_text}
@@ -281,28 +297,28 @@ class ResearchDirector:
             f"{company_name} (`{ticker}`) demonstrates strong market positioning backed by verified SEC Form 10-K data.",
             f"- **Intrinsic DCF Fair Value:** ${implied_price:.2f} per share" if implied_price else "- **Intrinsic DCF Fair Value:** N/A",
             f"- **Implied Enterprise Value:** ${enterprise_val:,.0f}" if enterprise_val else "- **Implied Enterprise Value:** N/A",
-            f"- **Financial Health Profile:** Altman Z-Score of **{alt_z:.2f}** ({alt_zone.upper()}), Piotroski F-Score of **{pio_f}/9**.",
-            f"- **Earnings Quality:** Beneish M-Score of **{ben_m:.2f}** (Flag: {'Low Manipulation Risk' if ben_m and ben_m < -1.78 else 'Caution'}).",
+            f"- **Financial Health Profile:** Altman Z-Score of **{_fmt(alt_z)}** ({alt_zone.upper()}), Piotroski F-Score of **{_fmt(pio_f, '.0f')}/9**.",
+            f"- **Earnings Quality:** Beneish M-Score of **{_fmt(ben_m)}** (Flag: {'Low Manipulation Risk' if ben_m is not None and ben_m < -1.78 else 'Caution'}).",
             "",
             "## 2. Forensic Accounting & Solvency Audit",
             "| Forensic Metric | Value | Benchmark / Safe Zone | Audit Interpretation |",
             "|---|---|---|---|",
-            f"| **Altman Z-Score** | {alt_z:.2f} | > 3.0 (Safe) | Company is positioned in the **{alt_zone.upper()}** zone regarding default risk. |",
-            f"| **Piotroski F-Score** | {pio_f}/9 | >= 7 (Strong) | Fundamental operational and liquidity momentum. |",
-            f"| **Beneish M-Score** | {ben_m:.2f} | < -1.78 (Safe) | Earnings quality indicators show no statistical red flags. |",
+            f"| **Altman Z-Score** | {_fmt(alt_z)} | > 3.0 (Safe) | Company is positioned in the **{alt_zone.upper()}** zone regarding default risk. |",
+            f"| **Piotroski F-Score** | {_fmt(pio_f, '.0f')}/9 | >= 7 (Strong) | Fundamental operational and liquidity momentum. |",
+            f"| **Beneish M-Score** | {_fmt(ben_m)} | < -1.78 (Safe) | Earnings quality indicators show no statistical red flags. |",
             f"| **Total Accruals / Assets** | {for_output['findings']['total_accruals_to_assets']:.3f} | Lower is better | Cash flow backing of reported net earnings. |",
-            f"| **Current Ratio** | {ratios.get('current_ratio', 0):.2f}x | > 1.0x | Balance sheet working capital buffer. |",
-            f"| **Debt to Equity** | {ratios.get('debt_to_equity', 0):.2f}x | Industry median | Capital structure leverage posture. |",
+            f"| **Current Ratio** | {_fmt_ratio(ratios, 'current_ratio')}x | > 1.0x | Balance sheet working capital buffer. |",
+            f"| **Debt to Equity** | {_fmt_ratio(ratios, 'debt_to_equity')}x | Industry median | Capital structure leverage posture. |",
             "",
             "## 3. Financial Performance & DuPont Decomposition",
             "| Performance Metric | FY Value | Description |",
             "|---|---|---|",
-            f"| **Return on Equity (ROE)** | {ratios.get('roe', 0) * 100:.2f}% | Overall return generated on shareholders' capital |",
-            f"| **Net Profit Margin** | {ratios.get('net_margin', 0) * 100:.2f}% | Operating efficiency & cost discipline |",
-            f"| **Asset Turnover** | {ratios.get('asset_turnover', 0):.2f}x | Asset utilization efficiency |",
-            f"| **Operating Margin** | {ratios.get('operating_margin', 0) * 100:.2f}% | Core profitability before taxes and interest |",
-            f"| **Free Cash Flow Margin** | {ratios.get('fcf_margin', 0) * 100:.2f}% | Free cash flow conversion efficiency |",
-            f"| **Return on Invested Capital (ROIC)** | {ratios.get('roic', 0) * 100:.2f}% | Economic value generation on invested capital |",
+            f"| **Return on Equity (ROE)** | {_fmt_ratio(ratios, 'roe', pct=True)}% | Overall return generated on shareholders' capital |",
+            f"| **Net Profit Margin** | {_fmt_ratio(ratios, 'net_margin', pct=True)}% | Operating efficiency & cost discipline |",
+            f"| **Asset Turnover** | {_fmt_ratio(ratios, 'asset_turnover')}x | Asset utilization efficiency |",
+            f"| **Operating Margin** | {_fmt_ratio(ratios, 'operating_margin', pct=True)}% | Core profitability before taxes and interest |",
+            f"| **Free Cash Flow Margin** | {_fmt_ratio(ratios, 'fcf_margin', pct=True)}% | Free cash flow conversion efficiency |",
+            f"| **Return on Invested Capital (ROIC)** | {_fmt_ratio(ratios, 'roic', pct=True)}% | Economic value generation on invested capital |",
             "",
             "## 4. Discounted Cash Flow (DCF) Model & Sensitivity Analysis",
             f"Based on historical cash generation and disciplined capital expenditure schedules:",
@@ -351,9 +367,9 @@ class ResearchDirector:
         report_lines.extend([
             "## 6. Research Conclusion & Fundamental Rating",
             f"Based on the objective quantitative evidence and verified SEC Form 10-K filings, **{ticker}** presents a:",
-            f"- **Solvency Stance:** **{alt_zone.upper()}** (Altman Z = {alt_z:.2f})",
-            f"- **Earnings Quality Stance:** **{'PRISTINE' if ben_m and ben_m < -1.78 else 'CAUTION'}** (Beneish M = {ben_m:.2f})",
-            f"- **Operational Momentum:** **{'HIGH' if pio_f and pio_f >= 7 else 'MODERATE'}** (Piotroski F = {pio_f}/9)",
+            f"- **Solvency Stance:** **{alt_zone.upper()}** (Altman Z = {_fmt(alt_z)})",
+            f"- **Earnings Quality Stance:** **{'PRISTINE' if ben_m is not None and ben_m < -1.78 else 'CAUTION'}** (Beneish M = {_fmt(ben_m)})",
+            f"- **Operational Momentum:** **{'HIGH' if pio_f is not None and pio_f >= 7 else 'MODERATE'}** (Piotroski F = {_fmt(pio_f, '.0f')}/9)",
             f"- **DCF Fair Value Range:** **${dcf['sensitivity_matrix']['rows'][0]['values'][-1]['implied_share_price']:.2f}** (Optimistic) to **${dcf['sensitivity_matrix']['rows'][-1]['values'][0]['implied_share_price']:.2f}** (Conservative)" if implied_price else "- **DCF Fair Value Range:** N/A",
             "",
             "_Disclaimer: This document is an automated equity research initiation dossier synthesized strictly from historical SEC EDGAR filings for financial education and quantitative fundamental analysis. It does not constitute investment advice or a recommendation to buy or sell securities._",
