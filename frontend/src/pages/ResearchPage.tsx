@@ -4,9 +4,7 @@ import Markdown from "../components/Markdown";
 import { useSelection } from "../context/SelectionContext";
 
 export default function ResearchPage() {
-  const { ticker, companies, years, year } = useSelection();
-  const [selectedTicker, setSelectedTicker] = useState(ticker);
-  const [selectedYear, setSelectedYear] = useState<number | undefined>(year);
+  const { ticker, year } = useSelection();
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -16,7 +14,7 @@ export default function ResearchPage() {
     setError(null);
     setResult(null);
     try {
-      const res = await api.research({ ticker: selectedTicker, year: selectedYear });
+      const res = await api.research({ ticker, year });
       setResult(res);
     } catch (e: any) {
       setError(e.message);
@@ -37,25 +35,10 @@ export default function ResearchPage() {
 
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="row">
-          <select className="select" value={selectedTicker} onChange={(e) => setSelectedTicker(e.target.value)}>
-            {companies.map((c) => (
-              <option key={c.ticker} value={c.ticker}>
-                {c.ticker}
-              </option>
-            ))}
-          </select>
-          <select
-            className="select"
-            value={selectedYear ?? ""}
-            onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : undefined)}
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>
-                FY{y}
-              </option>
-            ))}
-          </select>
-          <button className="btn" onClick={run} disabled={loading}>
+          <span className="muted">
+            Company and fiscal year follow the sidebar selection: <strong>{ticker} FY{year ?? "—"}</strong>
+          </span>
+          <button className="btn" onClick={run} disabled={loading || !ticker}>
             {loading ? "Generating… (can take ~10-20s)" : "Generate Report"}
           </button>
         </div>
