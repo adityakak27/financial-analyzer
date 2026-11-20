@@ -75,7 +75,7 @@ def test_beneish_hand_computed():
     lvgi = (250 / 800) / (250 / 760)
     tata = (150 - 180) / 800
     expected = (-4.84 + 0.92 * dsri + 0.528 * gmi + 0.404 * aqi + 0.892 * sgi
-                + 0.115 * depi - 0.172 * sgai + 4.679 * lvgi - 0.327 * tata)
+                + 0.115 * depi - 0.172 * sgai - 0.327 * lvgi + 4.679 * tata)
     assert approx(res.value, expected, tol=1e-6)
     assert not math.isnan(res.value)
 
@@ -89,5 +89,6 @@ def test_beneish_constant_company_all_indices_one():
     cur = YearData("X", 2022, dict(flat))
     prev = YearData("X", 2021, dict(flat))
     res = beneish_m(cur, prev)
-    expected = -4.84 + (0.92 + 0.528 + 0.404 + 0.892 + 0.115 - 0.172 + 4.679)
+    # TATA = (net_income - cfo) / assets = 0 for this flat company; all other indices = 1.
+    expected = -4.84 + (0.92 + 0.528 + 0.404 + 0.892 + 0.115 - 0.172 - 0.327)
     assert approx(res.value, expected, tol=1e-6)

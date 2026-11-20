@@ -15,7 +15,7 @@ def run_grounding(system: str = "hybrid", limit: int | None = None,
     items = json.loads((EVAL_DIR / "grounding_qa.json").read_text())
     if limit:
         items = items[:limit]
-    agent = FinChatAgent(force_offline=force_offline)
+    agent = FinChatAgent()
     rag = NaiveRAG(llm=agent.llm) if system == "naive_rag" else None
 
     results = []

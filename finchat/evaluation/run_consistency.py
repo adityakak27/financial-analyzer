@@ -13,7 +13,7 @@ from finchat.evaluation.checks import (
 
 
 def run_consistency(force_offline: bool = False) -> dict:
-    agent = FinChatAgent(force_offline=force_offline)
+    agent = FinChatAgent()
     mode = "offline" if force_offline or not agent.llm.available else "llm"
 
     analytical = json.loads((EVAL_DIR / "analytical_rubric.json").read_text())

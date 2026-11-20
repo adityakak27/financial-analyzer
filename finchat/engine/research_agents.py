@@ -133,10 +133,14 @@ class ValuationSpecialist:
         wacc = dcf_result.get("assumptions", {}).get("wacc", 0.09)
         g = dcf_result.get("assumptions", {}).get("terminal_growth", 0.025)
 
+        price_line = (
+            f"- **Implied Intrinsic Share Price**: ${implied_price:.2f}"
+            if implied_price else "- **Implied Intrinsic Share Price**: not computable"
+        )
         summary_text = (
             f"**Valuation & DCF Assessment for {ticker} (FY{year}):**\n"
             f"- **DCF Implied Enterprise Value**: ${ev:,.0f} (at {wacc:.1%} WACC, {g:.1%} Terminal Growth)\n"
-            f"- **Implied Intrinsic Share Price**: ${implied_price:.2f}" if implied_price else "Share price not computable"
+            f"{price_line}"
             f"\n- **Free Cash Flow Margin**: {ratios.get('fcf_margin', 0) * 100:.1f}%\n"
             f"- **Return on Invested Capital (ROIC)**: {ratios.get('roic', 0) * 100:.1f}%\n"
             f"- **Historical Revenue Growth**: {ratios.get('revenue_growth_pct', 0):.1f}% YoY"

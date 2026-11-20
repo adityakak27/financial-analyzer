@@ -12,7 +12,7 @@ def run_multiturn(force_offline: bool = False, limit: int | None = None) -> dict
     scripts = json.loads((EVAL_DIR / "multiturn_scripts.json").read_text())
     if limit:
         scripts = scripts[:limit]
-    agent = FinChatAgent(force_offline=force_offline)
+    agent = FinChatAgent()
 
     all_step_results: list[dict] = []
     transcripts = []

@@ -206,7 +206,7 @@ def beneish_m(cur: YearData, prev: YearData | None) -> ScoreResult:
 
     if all(parts[k] is not None for k in ("DSRI", "GMI", "AQI", "SGI", "DEPI", "SGAI", "LVGI")) and tata is not None:
         m_score = (-4.84 + 0.92 * dsri + 0.528 * gmi + 0.404 * aqi + 0.892 * sgi
-                   + 0.115 * depi - 0.172 * sgai + 4.679 * lvgi_ok - 0.327 * tata)
+                   + 0.115 * depi - 0.172 * sgai - 0.327 * lvgi_ok + 4.679 * tata)
     else:
         m_score = None
     if m_score is None:
