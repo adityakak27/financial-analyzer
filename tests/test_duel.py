@@ -17,6 +17,9 @@ def test_compare_companies_basic(seed_db):
     assert "Financial Health & Solvency" in res["pillars"]
     assert "Accounting Quality" in res["pillars"]
     assert "Growth" in res["pillars"]
+    assert "pillar_winners" in res
+    assert "Profitability" in res["pillar_winners"]
+    assert "Financial Health & Solvency" in res["pillar_winners"]
     assert res["wins_a"] + res["wins_b"] + res["ties"] > 0
     assert res["overall_winner"] in ("AAPL", "MSFT", "TIE")
     assert res["verdict"]
@@ -52,10 +55,26 @@ def test_compare_companies_unknown_ticker(seed_db):
 
 
 def test_agent_duel_query(seed_db):
-    agent = FinChatAgent(force_offline=True)
-    resp = agent.ask("Apple vs Microsoft head-to-head scorecard in FY2022")
-    assert resp.intent == "comparative_duel"
-    assert "⚔️ Company Duel" in resp.answer
-    assert "Scorecard Summary" in resp.answer
-    assert "Profitability" in resp.answer
-    assert any(c.get("metric") == "scorecard" for c in resp.citations)
+    from unittest.mock import MagicMock, patch
+
+    with patch("finchat.chatbot.llm.GEMINI_API_KEY", "mock-key"):
+        agent = FinChatAgent()
+        call_msg = MagicMock()
+        tc = MagicMock()
+        tc.id = "duel_call"
+        tc.function.name = "compare_companies"
+        tc.function.arguments = {"ticker_a": "AAPL", "ticker_b": "MSFT", "year": 2022}
+        call_msg.choices = [MagicMock(message=MagicMock(content=None, tool_calls=[tc]))]
+
+        final_msg = MagicMock()
+        final_msg.choices = [MagicMock(message=MagicMock(
+            content="Here is the scorecard comparison: Apple vs Microsoft for FY2022 across Profitability and Solvency.",
+            tool_calls=[],
+        ))]
+
+        agent.llm.chat = MagicMock(side_effect=[call_msg, final_msg])
+        resp = agent.ask("Apple vs Microsoft head-to-head scorecard in FY2022")
+
+        assert len(resp.tool_trace) == 1
+        assert resp.tool_trace[0]["name"] == "compare_companies"
+        assert any(c.get("metric") == "company_duel" for c in resp.citations)

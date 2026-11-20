@@ -1,42 +1,58 @@
 from __future__ import annotations
 
-import re
+from typing import Any, Literal
 
-RED_FLAG_PATTERNS: dict[str, str] = {
-    "going_concern": r"going concern",
-    "material_weakness": r"material weakness",
-    "restatement": r"restat(e|ed|ement|ements)",
-    "impairment": r"impair(ment|ments|ed)",
-    "litigation": r"litigation|lawsuit",
-    "regulatory_investigation": r"investigation|subpoena|enforcement action",
-    "covenant_or_default": r"default(ed)? (on|under)|covenant",
-    "customer_concentration": r"(customer|client) concentration|a significant portion of our revenue",
-    "supply_chain": r"supply chain|component shortag|constrained supply",
-    "cybersecurity": r"cybersecurity|data breach|security incident",
-    "competition_intensity": r"highly competitive|intense competition|aggressive pricing",
-    "macro_inflation": r"inflation(ary)?|interest rate (rises|increases)|recession",
-    "key_personnel": r"key (personnel|employees|management)",
-    "ip_protection": r"intellectual property.*(protect|infring)",
-    "foreign_operations": r"international operations|foreign currency|tariffs?",
-}
+from pydantic import BaseModel, Field
 
-COMPILED = {k: re.compile(v, re.IGNORECASE) for k, v in RED_FLAG_PATTERNS.items()}
+from finchat.chatbot.llm import LLMClient
+
+
+class RiskAuditResult(BaseModel):
+    overall_risk_severity: Literal["Low", "Moderate", "High", "Critical"] = Field(
+        description="Overall assessed severity of corporate risk"
+    )
+    primary_concerns: list[str] = Field(
+        default_factory=list, description="Primary business and operational concerns disclosed"
+    )
+    red_flags: list[str] = Field(
+        default_factory=list, description="Specific accounting, regulatory, debt covenant, or litigation alerts"
+    )
+    accounting_and_internal_controls: list[str] = Field(
+        default_factory=list, description="Any internal control weaknesses, restatements, or audit flags"
+    )
+    summary: str = Field(description="2-sentence executive summary of the risk audit")
+
+
+def audit_disclosures_with_ai(text: str, client: LLMClient | None = None) -> RiskAuditResult:
+    """Audit corporate SEC 10-K disclosures using Google Gemini with strict Pydantic Structured Output."""
+    if not text or not text.strip():
+        return RiskAuditResult(
+            overall_risk_severity="Low",
+            primary_concerns=[],
+            red_flags=[],
+            accounting_and_internal_controls=[],
+            summary="No disclosure text provided.",
+        )
+
+    llm = client or LLMClient()
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "You are an institutional equity research risk auditor. Carefully evaluate these SEC 10-K disclosures:\n\n"
+                f"\"\"\"{text[:4000]}\"\"\""
+            ),
+        }
+    ]
+    return llm.parse_structured(messages, response_model=RiskAuditResult, temperature=0.0)
 
 
 def scan_red_flags(text: str) -> dict[str, int]:
-    return {name: len(rx.findall(text)) for name, rx in COMPILED.items() if rx.search(text)}
-
-
-def red_flag_snippets(text: str, flag: str, max_snippets: int = 2, window: int = 240) -> list[str]:
-    rx = COMPILED.get(flag)
-    if rx is None:
-        return []
-    snippets = []
-    for m in rx.finditer(text):
-        start = max(0, m.start() - window // 2)
-        end = min(len(text), m.end() + window // 2)
-        snippet = re.sub(r"\s+", " ", text[start:end]).strip()
-        snippets.append(snippet)
-        if len(snippets) >= max_snippets:
-            break
-    return snippets
+    """Lightweight indicator counter for database indexing."""
+    terms = [
+        "going concern", "material weakness", "restatement", "impairment",
+        "litigation", "investigation", "covenant", "customer concentration",
+        "supply chain", "cybersecurity", "inflation"
+    ]
+    text_lower = text.lower()
+    return {t: text_lower.count(t) for t in terms if t in text_lower}

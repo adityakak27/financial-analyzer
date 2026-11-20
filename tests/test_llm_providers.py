@@ -1,22 +1,17 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
+import pytest
 
 from finchat.chatbot.agent import FinChatAgent
-from finchat.chatbot.llm import LLMClient
+from finchat.chatbot.llm import LLMClient, LLMUnavailable
 
 
-def test_offline_mode():
-    client = LLMClient(force_offline=True)
-    assert not client.available
-    assert "Offline" in client.display_name
-
-
-def test_gemini_without_key():
+def test_gemini_without_key_raises_error():
     with patch("finchat.chatbot.llm.GEMINI_API_KEY", ""):
-        client = LLMClient()
-        assert not client.available
-        assert "Offline" in client.display_name
+        with pytest.raises(LLMUnavailable) as exc_info:
+            LLMClient()
+        assert "GEMINI_API_KEY is not set" in str(exc_info.value)
 
 
 def test_gemini_with_key():
@@ -55,9 +50,3 @@ def test_parse_response_with_dict_and_string_arguments():
     assert calls[1]["name"] == "get_scores"
     assert calls[1]["args"] == {"ticker": "MSFT", "year": 2023}
     assert calls[1]["id"].startswith("call_1_get_scores")
-
-
-def test_agent_initialization_offline(seed_db):
-    agent = FinChatAgent(force_offline=True)
-    assert not agent.llm.available
-    assert "Offline" in agent.llm.display_name

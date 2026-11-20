@@ -128,6 +128,20 @@ def compare_companies(ticker_a: str, ticker_b: str, year: int | None = None) -> 
                 "direction": direction,
             })
 
+    pillar_winners: dict[str, str] = {}
+    pillar_stats: dict[str, dict[str, int]] = {}
+    for p_name, p_items in results_by_pillar.items():
+        p_wins_a = sum(1 for m in p_items if m["winner"] == t_a)
+        p_wins_b = sum(1 for m in p_items if m["winner"] == t_b)
+        p_ties = sum(1 for m in p_items if m["winner"] in ("TIE", "Tie"))
+        pillar_stats[p_name] = {"wins_a": p_wins_a, "wins_b": p_wins_b, "ties": p_ties}
+        if p_wins_a > p_wins_b:
+            pillar_winners[p_name] = f"{t_a} ({p_wins_a}-{p_wins_b})"
+        elif p_wins_b > p_wins_a:
+            pillar_winners[p_name] = f"{t_b} ({p_wins_b}-{p_wins_a})"
+        else:
+            pillar_winners[p_name] = f"Tie ({p_wins_a}-{p_wins_b})"
+
     if wins_a > wins_b:
         overall_winner = t_a
         verdict = f"{UNIVERSE.get(t_a, t_a)} ({t_a}) outperforms {UNIVERSE.get(t_b, t_b)} ({t_b}) winning {wins_a} to {wins_b}."
@@ -149,6 +163,8 @@ def compare_companies(ticker_a: str, ticker_b: str, year: int | None = None) -> 
         "wins_b": wins_b,
         "ties": ties,
         "overall_winner": overall_winner,
+        "pillar_winners": pillar_winners,
+        "pillar_stats": pillar_stats,
         "verdict": verdict,
         "pillars": results_by_pillar,
         "source": {

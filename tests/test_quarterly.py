@@ -54,8 +54,25 @@ def test_tool_get_metric_history_period_type():
 
 
 def test_agent_quarterly_trend_query():
-    agent = FinChatAgent(force_offline=True)
-    resp = agent.ask("Show Apple quarterly gross margin trend")
-    assert resp.intent == "trend"
-    assert "trend" in resp.answer.lower()
-    assert "Q" in resp.answer
+    from unittest.mock import MagicMock, patch
+
+    with patch("finchat.chatbot.llm.GEMINI_API_KEY", "mock-key"):
+        agent = FinChatAgent()
+        call_msg = MagicMock()
+        tc = MagicMock()
+        tc.id = "hist_call"
+        tc.function.name = "get_metric_history"
+        tc.function.arguments = {"ticker": "AAPL", "metric": "gross_margin", "period_type": "quarterly"}
+        call_msg.choices = [MagicMock(message=MagicMock(content=None, tool_calls=[tc]))]
+
+        final_msg = MagicMock()
+        final_msg.choices = [MagicMock(message=MagicMock(
+            content="Here is the Apple quarterly gross margin progression across quarters.",
+            tool_calls=[],
+        ))]
+
+        agent.llm.chat = MagicMock(side_effect=[call_msg, final_msg])
+        resp = agent.ask("Show Apple quarterly gross margin trend")
+        assert len(resp.tool_trace) == 1
+        assert resp.tool_trace[0]["name"] == "get_metric_history"
+        assert "quarterly" in resp.answer.lower()

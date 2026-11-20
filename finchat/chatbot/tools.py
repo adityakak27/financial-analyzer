@@ -172,6 +172,42 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "run_dcf_valuation",
+            "description": "Run an interactive Discounted Cash Flow (DCF) model and sensitivity analysis for a company. "
+                           "Calculates projected Free Cash Flows, Gordon Growth terminal value, enterprise value, "
+                           "bridge to equity value, implied intrinsic share price, and WACC vs Terminal Growth sensitivity matrix.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Company ticker, e.g. AAPL"},
+                    "wacc": {"type": "number", "description": "Weighted average cost of capital / discount rate (e.g. 0.09 for 9.0%)"},
+                    "terminal_growth": {"type": "number", "description": "Perpetual terminal growth rate (e.g. 0.025 for 2.5%)"},
+                    "forecast_years": {"type": "integer", "description": "Discrete forecast horizon in years (default 5)"},
+                    "custom_growth_rate": {"type": "number", "description": "Optional custom FCF growth rate override (e.g. 0.08 for 8.0%)"},
+                },
+                "required": ["ticker"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_equity_research",
+            "description": "Trigger the collaborative 4-Agent Equity Research Panel (Valuation Specialist, Forensic Auditor, "
+                           "Strategic Analyst, and Research Director) to generate an institutional-grade Initiation of Coverage Report.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Company ticker, e.g. AAPL or MSFT"},
+                    "year": {"type": "integer", "description": "Fiscal year to analyze (defaults to latest available)"},
+                },
+                "required": ["ticker"],
+            },
+        },
+    },
 ]
 
 PERCENT_METRICS = {"revenue_growth_pct", "net_income_growth_pct"}
@@ -551,6 +587,35 @@ def tool_compare_companies(ticker_a: str, ticker_b: str, year: int | None = None
     return compare_companies(ticker_a, ticker_b, year)
 
 
+def tool_run_dcf_valuation(
+    ticker: str,
+    wacc: float = 0.09,
+    terminal_growth: float = 0.025,
+    forecast_years: int = 5,
+    custom_growth_rate: float | None = None,
+) -> dict[str, Any]:
+    from finchat.engine.dcf import calculate_dcf
+
+    res = calculate_dcf(
+        ticker,
+        wacc=wacc,
+        terminal_growth=terminal_growth,
+        forecast_years=forecast_years,
+        custom_growth_rate=custom_growth_rate,
+    )
+    res["source"] = {"type": "structured_lookup", "table": "dcf_valuation_engine"}
+    return res
+
+
+def tool_generate_equity_research(ticker: str, year: int | None = None) -> dict[str, Any]:
+    from finchat.engine.research_agents import ResearchDirector
+
+    rd = ResearchDirector()
+    res = rd.generate_initiation_report(ticker, year=year)
+    res["source"] = {"type": "structured_lookup", "table": "equity_research_panel"}
+    return res
+
+
 TOOL_IMPLS = {
     "get_ratio": lambda args: tool_get_ratio(args.get("ticker"), args.get("metric", ""), args.get("year")),
     "get_scores": lambda args: tool_get_scores(args.get("ticker"), args.get("year")),
@@ -575,6 +640,17 @@ TOOL_IMPLS = {
         args.get("ticker_a", ""),
         args.get("ticker_b", ""),
         args.get("year"),
+    ),
+    "run_dcf_valuation": lambda args: tool_run_dcf_valuation(
+        args.get("ticker", ""),
+        float(args.get("wacc", 0.09) or 0.09),
+        float(args.get("terminal_growth", 0.025) or 0.025),
+        int(args.get("forecast_years", 5) or 5),
+        float(args.get("custom_growth_rate")) if args.get("custom_growth_rate") is not None else None,
+    ),
+    "generate_equity_research": lambda args: tool_generate_equity_research(
+        args.get("ticker", ""),
+        int(args["year"]) if args.get("year") else None,
     ),
 }
 

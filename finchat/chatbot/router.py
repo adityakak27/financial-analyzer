@@ -1,111 +1,52 @@
 from __future__ import annotations
 
-import re
-from typing import Any
+from typing import Any, Literal, Optional
 
-FACTUAL_PATTERNS = [
-    re.compile(r"\b(what|how much|which)\b.*\b(was|is|were|did|were the)\b", re.I),
-    re.compile(r"\b(value|amount|number|figure|ratio|score|margin|growth|rank|percentile)\b", re.I),
-    re.compile(r"\b(show|tell|give|list)\b.*\b(me\s+)?(the\s+)?(ratio|score|numbers?|line items?)\b", re.I),
-    re.compile(r"^(and|now|then|what about|how about)\b", re.I),
-    re.compile(r"\b(prior|previous|same|earlier)\s+(year|fiscal|period)", re.I),
-]
+from pydantic import BaseModel, Field
 
-QUALITATIVE_PATTERNS = [
-    re.compile(r"\b(say|says|said|discuss|discussed|disclosure|disclose[d]?|mention(ed)?|report(ed)?)\b", re.I),
-    re.compile(r"\b(tone|outlook|language|wording|commentary|management's view|management view)\b", re.I),
-    re.compile(r"\bwhat (risks|risk factors|concerns).*(disclose|mention|identify|describe)\b", re.I),
-    re.compile(r"\b(quote|passage|excerpt|section)\b", re.I),
-]
-
-ANALYTICAL_PATTERNS = [
-    re.compile(r"\b(do you think|does it look|would you say|assess|assessment|evaluate|opinion|view on|interpret)\b", re.I),
-    re.compile(r"\b(risky|riskiness|healthy|health(y)?|distress(ed)?|troubl(e|ing)|concerning|worry|red flags?)\b", re.I),
-    re.compile(r"\b(compare|comparison|versus|vs\.?|better|worse|stronger|weaker)\b", re.I),
-    re.compile(r"\b(why|what drove|explain.*(drop|decline|improvement|change))\b", re.I),
-]
-
-ADVICE_PATTERNS = re.compile(
-    r"\b(should i (buy|sell|invest|hold)|is it a (good )?(buy|investment)|would you (buy|invest)|"
-    r"price target|buy or sell|invest in)\b",
-    re.I,
-)
-ADVICE_LOOSE_RE = re.compile(
-    r"\bis\b.{0,40}\ba\s+good\s+(investment|buy|stock|pick)\b|\bworth investing in\b|\bgood stock to buy\b",
-    re.I,
-)
-
-SCORE_WORDS = re.compile(r"\b(altman|z[- ]?score|piotroski|f[- ]?score|beneish|m[- ]?score)\b", re.I)
+from finchat.chatbot.llm import LLMClient
 
 
-TREND_PATTERNS = re.compile(
-    r"\b(trend|trends|trending|history|historical|over time|across years|multi[- ]year|5[- ]year|7[- ]year|graph|plot|chart|quarterly|quarters|quarter|q1|q2|q3|q4|ttm|trailing twelve months)\b",
-    re.I,
-)
+class IntentClassificationResult(BaseModel):
+    intent: Literal[
+        "valuation",
+        "research_report",
+        "comparison",
+        "trend",
+        "credit_and_forensic",
+        "factual_ratio",
+        "qualitative_risks",
+        "advice_probe",
+        "general_chat",
+    ] = Field(description="Primary intent category of the financial question")
+    primary_ticker: Optional[str] = Field(default=None, description="Company ticker identified, if any (e.g. AAPL)")
+    fiscal_year: Optional[int] = Field(default=None, description="Fiscal year referenced, if any (e.g. 2023)")
+    metric_name: Optional[str] = Field(default=None, description="Specific ratio or metric requested, if any")
+    reasoning: str = Field(description="Brief 1-sentence reasoning for classification")
 
 
-def classify_intent(question: str) -> str:
-    q = question.strip()
-    if ADVICE_PATTERNS.search(q) or ADVICE_LOOSE_RE.search(q):
-        return "advice_probe"
-    if TREND_PATTERNS.search(q):
-        return "trend"
-    if SCORE_WORDS.search(q):
-        analytical_cue = ANALYTICAL_PATTERNS[0].search(q) or re.search(
-            r"\b(interpret|mean|suggest|tell us|raise|signal|indicate|concern|worry)\b", q, re.I)
-        return "analytical" if analytical_cue else "factual"
-    if ADVICE_PATTERNS.search(q) or ADVICE_LOOSE_RE.search(q):
-        return "advice_probe"
-    qualitative_hits = sum(1 for p in QUALITATIVE_PATTERNS if p.search(q))
-    factual_hits = sum(1 for p in FACTUAL_PATTERNS if p.search(q))
-    analytical_hits = sum(1 for p in ANALYTICAL_PATTERNS if p.search(q))
-
-    if qualitative_hits and not factual_hits:
-        return "qualitative"
-    if analytical_hits and qualitative_hits == 0:
-        return "analytical" if analytical_hits >= 1 else "factual"
-    if analytical_hits and factual_hits:
-        return "analytical"
-    if qualitative_hits:
-        return "qualitative"
-    if factual_hits:
-        return "factual"
-    if re.search(r"\b(compare|vs\.?|versus)\b", q, re.I):
-        return "analytical"
-    return "qualitative"
-
-
-def extract_metric_hint(question: str) -> str | None:
-    from finchat.chatbot.tools import METRIC_ALIASES
-
-    q = " ".join(question.lower().replace("-", " ").split())
-    best: tuple[int, str] | None = None
-    for alias, metric in METRIC_ALIASES.items():
-        a = " ".join(alias.replace("-", " ").split())
-        if re.search(rf"\b{re.escape(a)}\b", q):
-            cand = (len(a), metric)
-            if best is None or cand[0] > best[0]:
-                best = cand
-    return best[1] if best else None
+def classify_intent_with_ai(question: str, client: LLMClient | None = None) -> IntentClassificationResult:
+    """Classify user intent using Google Gemini with strict Pydantic Structured Output."""
+    llm = client or LLMClient()
+    messages = [
+        {
+            "role": "user",
+            "content": f"Analyze this user query for an institutional equity research platform:\n\"{question}\"",
+        }
+    ]
+    return llm.parse_structured(messages, response_model=IntentClassificationResult, temperature=0.0)
 
 
 def route(question: str, resolved: dict[str, Any]) -> dict[str, Any]:
-    intent = classify_intent(question)
-    tickers = resolved["tickers"]
-    if len(tickers) >= 2:
-        metric = extract_metric_hint(question)
-        if re.search(r"\b(vs\.?|versus|duel|scorecard|head[- ]to[- ]head|who is better|overall|better investment|outperform)\b", question, re.I):
-            intent = "comparative_duel"
-        elif not metric and intent in ("analytical", "factual"):
-            intent = "comparative_duel"
-        elif intent == "factual" or (intent == "analytical" and metric):
-            intent = "comparative_factual"
-        elif intent in ("qualitative",):
-            intent = "comparative_qualitative"
-    elif intent == "factual":
-        pass
-    out: dict[str, Any] = {
-        "intent": intent,
-        **resolved,
-    }
-    return out
+    try:
+        classification = classify_intent_with_ai(question)
+        return {
+            "intent": classification.intent,
+            "structured_classification": classification.model_dump(),
+            **resolved,
+        }
+    except Exception:
+        return {
+            "intent": "conversational",
+            **resolved,
+        }

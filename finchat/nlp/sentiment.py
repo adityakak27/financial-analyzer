@@ -4,8 +4,54 @@ import csv
 import re
 from functools import lru_cache
 from pathlib import Path
+from typing import Any, Literal
 
+from pydantic import BaseModel, Field
+
+from finchat.chatbot.llm import LLMClient
 from finchat.config import LM_LEXICON_PATH
+
+
+class SentimentAnalysisResult(BaseModel):
+    tone: Literal["Optimistic", "Cautious", "Concerned", "Neutral"] = Field(
+        description="Overall management disclosure tone"
+    )
+    management_confidence: Literal["High", "Moderate", "Low"] = Field(
+        description="Level of executive confidence in forward operations"
+    )
+    forward_looking_hedging: Literal["High", "Moderate", "Low"] = Field(
+        description="Frequency of legal hedging and qualifying uncertainty language"
+    )
+    key_drivers: list[str] = Field(
+        default_factory=list, description="Core business drivers or headwinds mentioned"
+    )
+    commentary: str = Field(description="2-sentence executive summary of corporate sentiment")
+
+
+def analyze_sentiment_with_ai(text: str, client: LLMClient | None = None) -> SentimentAnalysisResult:
+    """Analyze SEC 10-K management tone using Google Gemini with strict Pydantic Structured Output."""
+    if not text or not text.strip():
+        return SentimentAnalysisResult(
+            tone="Neutral",
+            management_confidence="Moderate",
+            forward_looking_hedging="Moderate",
+            key_drivers=[],
+            commentary="No disclosure text provided.",
+        )
+
+    llm = client or LLMClient()
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "You are an expert financial analyst analyzing management disclosures in an SEC Form 10-K.\n"
+                "Evaluate the tone, outlook, and executive sentiment in this excerpt:\n\n"
+                f"\"\"\"{text[:4000]}\"\"\""
+            ),
+        }
+    ]
+    return llm.parse_structured(messages, response_model=SentimentAnalysisResult, temperature=0.0)
+
 
 FALLBACK_NEGATIVE = """
 adverse adversely allegations alleged impairment impairments breach breached breaches claim claims
