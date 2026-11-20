@@ -77,10 +77,53 @@ finchat/
   nlp/                    section extraction (multi-strategy), LM-style sentiment, red-flag regexes, TF-IDF retriever
   chatbot/                tools (+JSON schemas), intent router, conversation state, LLM client, agent
   evaluation/             eval-set builder, grounding runner, naive-RAG baseline, multiturn & consistency runners, report
-app/streamlit_app.py      chat UI with citations and tool-call inspectors
+app/streamlit_app.py      original Streamlit chat UI (still works standalone)
+backend/                  FastAPI web API wrapping the same finchat engine (see below)
+frontend/                 React + TypeScript web client that talks to backend/ (see below)
 tests/                    27 unit/integration tests incl. hand-computed Altman/Piotroski/Beneish fixtures
 data/eval/                generated question sets with ground truth
 eval_results/             run artifacts + summary_report.md + demo_transcript.md
+```
+
+## Web app (React frontend + FastAPI backend)
+
+A standalone, non-Streamlit web client. The backend is a thin FastAPI layer over the
+exact same `finchat` tool functions used by the chatbot (no duplicated logic); the
+frontend is a Vite + React + TypeScript SPA with a chat view, company dashboard,
+head-to-head comparison, DCF valuation, the 4-agent research report, and filings search.
+
+```bash
+# Terminal 1 - backend (http://localhost:8000)
+pip install -r backend/requirements.txt
+python -m uvicorn app.main:app --app-dir backend --port 8000
+
+# Terminal 2 - frontend (http://localhost:5173)
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend reads `VITE_API_BASE_URL` (defaults to `http://localhost:8000`, see
+`frontend/.env.example`). The backend reuses `finchat/config.py` for the Gemini key,
+so the same root-level `.env` powers both the Streamlit app and this web app.
+
+```
+backend/
+  requirements.txt        fastapi + uvicorn, plus the root requirements.txt
+  app/
+    main.py                routes: /api/health, /api/companies, /api/ratio,
+                            /api/metric-history, /api/scores, /api/line-items,
+                            /api/peer-ranking, /api/compare, /api/search-filings,
+                            /api/text-sentiment, /api/dcf, /api/research, /api/chat(+/reset)
+    sessions.py            in-memory per-session FinChatAgent store (chat follow-up context)
+    schemas.py             pydantic request bodies
+frontend/
+  src/
+    api/client.ts           typed fetch wrapper for every backend route
+    context/SelectionContext.tsx   shared ticker/year/company-list state
+    components/             Sidebar, MetricTile, MetricHistoryChart, Markdown
+    pages/                   ChatPage, DashboardPage, ComparePage, ValuationPage,
+                             ResearchPage, FilingsPage
 ```
 
 ## Evaluation design (maps to hypotheses)
