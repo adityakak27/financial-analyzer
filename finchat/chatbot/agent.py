@@ -156,6 +156,11 @@ def sanitize_markdown(text: str) -> str:
 
     # Ensure clean blank line before headers so Streamlit renders them as proper HTML headings
     t = re.sub(r"([^\n])\n(#{1,6}\s)", r"\1\n\n\2", t)
+
+    # The UI renders no LaTeX: unwrap short inline math ($n = 26$ -> n = 26) and write R^2 as R².
+    # Math must start with a letter or backslash, so dollar amounts ($40.10 ... $50) are untouched.
+    t = re.sub(r"\$([A-Za-z\\][^$\n]{0,39})\$", r"\1", t)
+    t = re.sub(r"R\^\{?2\}?", "R²", t)
     return t
 
 

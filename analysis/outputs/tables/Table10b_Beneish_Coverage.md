@@ -1,0 +1,5 @@
+| sub_industry         |   company_years |   beneish_available |   sga_reported |   ppe_reported |   beneish_coverage_pct |
+|:---------------------|----------------:|--------------------:|---------------:|---------------:|-----------------------:|
+| Hardware & Equipment |             126 |                  55 |             84 |            118 |                   43.7 |
+| Semiconductors       |             119 |                  80 |            107 |            112 |                   67.2 |
+| Software & Services  |             154 |                  22 |             44 |            145 |                   14.3 |

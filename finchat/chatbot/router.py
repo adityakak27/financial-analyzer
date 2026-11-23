@@ -18,6 +18,7 @@ class IntentClassificationResult(BaseModel):
         "qualitative_risks",
         "advice_probe",
         "general_chat",
+        "mispricing",
     ] = Field(description="Primary intent category of the financial question")
     primary_ticker: Optional[str] = Field(default=None, description="Company ticker identified, if any (e.g. AAPL)")
     fiscal_year: Optional[int] = Field(default=None, description="Fiscal year referenced, if any (e.g. 2023)")

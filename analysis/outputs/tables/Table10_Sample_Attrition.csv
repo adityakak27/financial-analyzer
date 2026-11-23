@@ -1,0 +1,11 @@
+stage,n
+Company-years collected (57 x 7),399
+With a Quality Score,396
+With EV/Sales (needs price + diluted shares),386
+RQ1 simple regression (Quality + EV/Sales),383
+"RQ1 controlled regression (+ revenue growth, needs prior year)",330
+With a walk-forward verdict (FY2019+; FY2018 has no training data),332
+With a next-12m excess return,397
+With Piotroski F,342
+With Altman Z (point-in-time),375
+With Beneish M,157

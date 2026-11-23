@@ -6,6 +6,7 @@ import ChatPage from "./pages/ChatPage";
 import ComparePage from "./pages/ComparePage";
 import DashboardPage from "./pages/DashboardPage";
 import FilingsPage from "./pages/FilingsPage";
+import MispricingRadarPage from "./pages/MispricingRadarPage";
 import ResearchPage from "./pages/ResearchPage";
 import ValuationPage from "./pages/ValuationPage";
 
@@ -22,6 +23,7 @@ export default function App() {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/compare" element={<ComparePage />} />
                 <Route path="/valuation" element={<ValuationPage />} />
+                <Route path="/mispricing" element={<MispricingRadarPage />} />
                 <Route path="/research" element={<ResearchPage />} />
                 <Route path="/filings" element={<FilingsPage />} />
               </Routes>

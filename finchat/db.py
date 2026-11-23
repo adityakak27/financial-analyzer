@@ -113,6 +113,95 @@ CREATE TABLE IF NOT EXISTS textstats (
     redflags_json TEXT,
     PRIMARY KEY (ticker, fy, section)
 );
+
+CREATE TABLE IF NOT EXISTS prices (
+    ticker TEXT NOT NULL,
+    date   TEXT NOT NULL,
+    close  REAL,
+    adj_close REAL,
+    PRIMARY KEY (ticker, date)
+);
+
+CREATE TABLE IF NOT EXISTS mispricing (
+    ticker TEXT NOT NULL,
+    fiscal_year INTEGER NOT NULL,
+    sub_industry TEXT,
+    quality_score REAL,
+    profitability REAL,
+    growth REAL,
+    safety REAL,
+    earnings_quality REAL,
+    ev_sales REAL,
+    expected_ev_sales REAL,
+    valuation_gap REAL,
+    gap_z REAL,
+    verdict TEXT,
+    pe REAL,
+    dcf_fair_value REAL,
+    price_at_filing REAL,
+    dcf_upside REAL,
+    dcf_agreement TEXT,
+    return_next_12m REAL,
+    benchmark_return_next_12m REAL,
+    excess_return_next_12m REAL,
+    accession TEXT,
+    computed_at TEXT,
+    PRIMARY KEY (ticker, fiscal_year)
+);
+
+CREATE TABLE IF NOT EXISTS mispricing_wf_fit (
+    fiscal_year INTEGER NOT NULL,
+    sub_industry TEXT NOT NULL,
+    intercept REAL,
+    slope REAL,
+    train_r2 REAL,
+    n INTEGER,
+    train_start INTEGER,
+    train_end INTEGER,
+    year_gap_mean REAL,
+    year_gap_std REAL,
+    PRIMARY KEY (fiscal_year, sub_industry)
+);
+
+CREATE TABLE IF NOT EXISTS mispricing_fit (
+    fiscal_year INTEGER NOT NULL,
+    sub_industry TEXT NOT NULL,
+    intercept REAL,
+    slope REAL,
+    r2 REAL,
+    p_value REAL,
+    n INTEGER,
+    residual_std REAL,
+    PRIMARY KEY (fiscal_year, sub_industry)
+);
+
+CREATE TABLE IF NOT EXISTS mispricing_notes (
+    ticker TEXT NOT NULL,
+    fiscal_year INTEGER NOT NULL,
+    note_text TEXT,
+    numbers_validated INTEGER,
+    model TEXT,
+    generated_at TEXT,
+    PRIMARY KEY (ticker, fiscal_year)
+);
+
+CREATE TABLE IF NOT EXISTS mispricing_score_outcomes (
+    score TEXT NOT NULL,
+    grp TEXT NOT NULL,
+    n INTEGER,
+    rev_growth_next_mean REAL,
+    rev_growth_next_median REAL,
+    ni_growth_next_mean REAL,
+    ni_growth_next_median REAL,
+    return_next_12m_mean REAL,
+    return_next_12m_median REAL,
+    excess_return_next_12m_mean REAL,
+    excess_return_next_12m_median REAL,
+    loss_next_mean REAL,
+    loss_next_median REAL,
+    computed_at TEXT,
+    PRIMARY KEY (score, grp)
+);
 """
 
 

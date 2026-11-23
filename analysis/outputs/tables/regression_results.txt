@@ -1,0 +1,38 @@
+Regression 1 (simple OLS, pooled FY2018-2024, descriptive)
+log(EV/Sales) = 0.1184 + 0.02601 * QualityScore
+R^2 = 0.1405, p = 3.19e-14, N = 383
+
+Regression 2 (+ revenue growth, fiscal-year and sub-industry fixed effects; SE clustered by ticker). N falls from 383 to 330 because revenue growth needs a prior year.
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:           log_ev_sales   R-squared:                       0.323
+Model:                            OLS   Adj. R-squared:                  0.304
+Method:                 Least Squares   F-statistic:                     14.89
+Date:                Mon, 23 Nov 2026   Prob (F-statistic):           5.67e-12
+Time:                        19:44:20   Log-Likelihood:                -372.51
+No. Observations:                 330   AIC:                             765.0
+Df Residuals:                     320   BIC:                             803.0
+Df Model:                           9                                         
+Covariance Type:              cluster                                         
+==========================================================================================================
+                                             coef    std err          z      P>|z|      [0.025      0.975]
+----------------------------------------------------------------------------------------------------------
+Intercept                                 -0.3540      0.333     -1.062      0.288      -1.007       0.299
+C(fy_cat)[T.2020]                          0.1036      0.076      1.370      0.171      -0.045       0.252
+C(fy_cat)[T.2021]                          0.3231      0.102      3.169      0.002       0.123       0.523
+C(fy_cat)[T.2022]                          0.2639      0.102      2.590      0.010       0.064       0.464
+C(fy_cat)[T.2023]                          0.4162      0.117      3.568      0.000       0.188       0.645
+C(fy_cat)[T.2024]                          0.6551      0.115      5.688      0.000       0.429       0.881
+C(sub_industry)[T.Semiconductors]          0.4204      0.208      2.018      0.044       0.012       0.829
+C(sub_industry)[T.Software & Services]     0.7134      0.237      3.011      0.003       0.249       1.178
+QualityScore                               0.0222      0.008      2.945      0.003       0.007       0.037
+revenue_growth_pct                        -0.0003      0.003     -0.094      0.925      -0.007       0.006
+==============================================================================
+Omnibus:                       22.062   Durbin-Watson:                   0.738
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):               25.210
+Skew:                          -0.677   Prob(JB):                     3.36e-06
+Kurtosis:                       2.982   Cond. No.                         340.
+==============================================================================
+
+Notes:
+[1] Standard Errors are robust to cluster correlation (cluster)

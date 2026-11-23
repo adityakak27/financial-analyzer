@@ -9,6 +9,7 @@ from finchat.collect.pipeline import collect_all
 from finchat.collect.text_pipeline import collect_text
 from finchat.config import RESULTS_DIR, UNIVERSE
 from finchat.engine.dcf import calculate_dcf
+from finchat.engine.mispricing import run_mispricing_pipeline
 from finchat.engine.pipeline import run_engine
 from finchat.engine.research_agents import ResearchDirector
 from finchat.evaluation.build_eval_set import main as build_eval
@@ -28,6 +29,9 @@ DEMO_QUESTIONS = [
     ("What supply chain risks did NVIDIA disclose in FY2023?", "qualitative retrieval"),
     ("Should I buy NVDA stock right now?", "advice guardrail probe"),
     ("Run a DCF valuation for Apple.", "valuation modeling"),
+    ("Is Nvidia overvalued for its quality?", "mispricing radar: valuation check"),
+    ("Which tech companies look cheapest right now?", "mispricing radar: leaderboard"),
+    ("Do high Piotroski scores lead to better returns?", "mispricing radar: score effectiveness"),
 ]
 
 
@@ -137,6 +141,40 @@ def json_dumps_key(c) -> str:
     return json.dumps(c, sort_keys=True, default=str)
 
 
+def cmd_prices(args) -> None:
+    import sqlite3
+
+    import pandas as pd
+
+    from finchat.collect.prices import build_price_cache
+    from finchat.config import DB_PATH, UNIVERSE
+
+    tickers = args.tickers or None
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        if tickers:
+            placeholders = ",".join("?" * len(tickers))
+            filings = pd.read_sql(
+                f"SELECT ticker, fy, filed FROM filings WHERE ticker IN ({placeholders})",
+                conn, params=tickers,
+            ).to_dict("records")
+        else:
+            filings = pd.read_sql("SELECT ticker, fy, filed FROM filings", conn).to_dict("records")
+    finally:
+        conn.close()
+    print(f"[prices] caching point-in-time prices for {len(filings)} filings "
+          f"({len({f['ticker'] for f in filings})} tickers)...")
+    counts = build_price_cache(filings)
+    print(f"[prices] done: {counts}")
+
+
+def cmd_mispricing(args) -> None:
+    tickers = args.tickers or None
+    print("[mispricing] running full pipeline: panel -> quality score -> valuation -> mispricing -> DB...")
+    counts = run_mispricing_pipeline(tickers=tickers, use_gemini=args.gemini)
+    print(f"[mispricing] done: {counts}")
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="finchat",
                                 description="Institutional Equity Research Copilot & Fundamental Analyst")
@@ -179,6 +217,15 @@ def main(argv: list[str] | None = None) -> None:
 
     s = sub.add_parser("demo", help="generate sample conversation transcripts")
 
+    s = sub.add_parser("prices", help="cache point-in-time share prices for the Mispricing Radar")
+    s.add_argument("tickers", nargs="*", default=None)
+
+    s = sub.add_parser("mispricing", help="compute the Mispricing Radar (quality vs valuation) and store it")
+    s.add_argument("tickers", nargs="*", default=None)
+    s.add_argument("--gemini", action=argparse.BooleanOptionalAction, default=None,
+                   help="force Gemini (--gemini) or offline templates (--no-gemini) for AI notes; "
+                        "default auto-detects from GEMINI_API_KEY")
+
     args = p.parse_args(argv)
 
     if args.cmd == "collect":
@@ -207,6 +254,10 @@ def main(argv: list[str] | None = None) -> None:
         build_report()
     elif args.cmd == "demo":
         cmd_demo(args)
+    elif args.cmd == "prices":
+        cmd_prices(args)
+    elif args.cmd == "mispricing":
+        cmd_mispricing(args)
 
 
 if __name__ == "__main__":

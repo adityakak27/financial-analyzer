@@ -44,8 +44,14 @@ cp .env.example .env          # optional: add OPENAI_API_KEY for LLM mode
 
 # 1) collect + analyze + index (smoke-test with 5 tickers; omit names for all 19)
 python -m finchat collect AAPL MSFT NVDA ADBE INTC
-python -m finchat analyze                     # add --market-data if yfinance installed
-python -m finchat index-text AAPL MSFT NVDA ADBE INTC
+python -m finchat index-text AAPL MSFT NVDA ADBE INTC   # also records each 10-K's filing date
+python -m finchat prices                      # caches point-in-time prices + the XLK benchmark (needs yfinance)
+python -m finchat analyze --market-data       # ratios/scores using the price ON each filing date
+python -m finchat mispricing                  # builds the Mispricing Radar tables (page, tools, badge)
+
+# Order matters: `analyze --market-data` reads cached prices for each fiscal year's filing date.
+# Run before `prices`, it falls back to book equity for Altman Z (never to today's market cap).
+# The Mispricing Radar study itself lives in analysis/: run analysis/scripts/00..08 in order.
 
 # 2) talk to it
 python -m finchat chat                        # terminal REPL (--offline forces deterministic mode)

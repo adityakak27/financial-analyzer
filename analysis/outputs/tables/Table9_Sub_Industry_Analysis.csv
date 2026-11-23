@@ -1,0 +1,4 @@
+sub_industry,n_company_years,avg_quality_score,avg_ev_sales,avg_excess_return_next_12m,quality_valuation_corr
+Hardware & Equipment,126,39.1,2.9,-0.025,0.504
+Semiconductors,119,50.4,5.2,0.054,0.066
+Software & Services,154,47.4,7.13,-0.016,0.344

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import MetricTile from "../components/MetricTile";
 import MetricHistoryChart from "../components/MetricHistoryChart";
@@ -51,6 +52,7 @@ export default function DashboardPage() {
   const [history, setHistory] = useState<any>(null);
   const [historyMetric, setHistoryMetric] = useState("roe");
   const [loading, setLoading] = useState(true);
+  const [valuationCheck, setValuationCheck] = useState<any>(null);
 
   const company = companies.find((c) => c.ticker === ticker);
 
@@ -68,6 +70,10 @@ export default function DashboardPage() {
       .scores(ticker, year)
       .then(setScores)
       .catch(() => setScores(null));
+    api
+      .mispricingCompany(ticker, year)
+      .then(setValuationCheck)
+      .catch(() => setValuationCheck(null));
   }, [ticker, year]);
 
   useEffect(() => {
@@ -84,6 +90,16 @@ export default function DashboardPage() {
       <div className="page-header">
         <h1 className="page-title">
           {company ? `${company.name} (${ticker})` : ticker} — FY{year ?? "—"}
+          {valuationCheck && !valuationCheck.error && (
+            <Link
+              to={`/mispricing?ticker=${ticker}`}
+              className={`badge ${valuationCheck.verdict === "Undervalued" ? "positive" : valuationCheck.verdict === "Overvalued" ? "warning" : "neutral"}`}
+              style={{ marginLeft: 12, fontSize: 12, textDecoration: "none" }}
+              title={`Gap z-score: ${valuationCheck.gap_z?.toFixed?.(2)} — open the Mispricing Radar`}
+            >
+              Valuation Check: {valuationCheck.verdict === "insufficient_data" ? "no verdict" : valuationCheck.verdict}
+            </Link>
+          )}
         </h1>
         <p className="page-subtitle">Ratio analysis, DuPont-adjacent returns, and credit/quality scores from SEC XBRL filings.</p>
       </div>

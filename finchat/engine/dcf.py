@@ -12,14 +12,18 @@ def safe_div(a: float | None, b: float | None) -> float | None:
     return a / b
 
 
-def get_historical_cash_flows(ticker: str) -> list[dict[str, Any]]:
-    """Retrieve historical CFO, CapEx, FCF, Revenue, and Net Income for all available FYs."""
+def get_historical_cash_flows(ticker: str, as_of_fy: int | None = None) -> list[dict[str, Any]]:
+    """Retrieve historical CFO, CapEx, FCF, Revenue, and Net Income for all available FYs.
+
+    as_of_fy: if given, only fiscal years <= as_of_fy are returned, so the model can be
+    run "as of" a historical filing date instead of always using the latest FY on file.
+    """
     ticker = (ticker or "").upper().strip()
     with get_db() as con:
         rows = con.execute(
             """
-            SELECT fy, metric, value 
-            FROM statements 
+            SELECT fy, metric, value
+            FROM statements
             WHERE ticker = ? AND metric IN ('cfo', 'capex', 'revenue', 'net_income')
             ORDER BY fy ASC
             """,
@@ -29,6 +33,8 @@ def get_historical_cash_flows(ticker: str) -> list[dict[str, Any]]:
     by_year: dict[int, dict[str, float | None]] = {}
     for r in rows:
         fy = r["fy"]
+        if as_of_fy is not None and fy > as_of_fy:
+            continue
         by_year.setdefault(fy, {})[r["metric"]] = r["value"]
 
     history: list[dict[str, Any]] = []
@@ -54,6 +60,7 @@ def calculate_dcf(
     terminal_growth: float = 0.025,
     forecast_years: int = 5,
     custom_growth_rate: float | None = None,
+    as_of_fy: int | None = None,
 ) -> dict[str, Any]:
     """Execute a full DCF valuation model with bridge to equity value and sensitivity analysis.
 
@@ -63,9 +70,12 @@ def calculate_dcf(
         terminal_growth: Perpetual terminal growth rate (e.g. 0.025 for 2.5%)
         forecast_years: Number of discrete projection years (typically 5)
         custom_growth_rate: Optional annual FCF growth rate override (e.g. 0.08 for 8.0%)
+        as_of_fy: Optional fiscal year to treat as "latest" (uses only data filed through
+            that year), so the model can be run as of a historical filing date. Defaults
+            to the most recent fiscal year on file, unchanged from prior behavior.
     """
     ticker = (ticker or "").upper().strip()
-    history = get_historical_cash_flows(ticker)
+    history = get_historical_cash_flows(ticker, as_of_fy=as_of_fy)
     if not history:
         return {"error": f"No financial statements found for {ticker}"}
 

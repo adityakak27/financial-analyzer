@@ -92,4 +92,16 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ session_id: sessionId }),
     }),
+
+  mispricingOverview: (year?: number, subIndustry?: string) =>
+    request<any>(`/api/mispricing/overview${qs({ year, sub_industry: subIndustry })}`),
+
+  mispricingLeaderboard: (direction: "under" | "over", year?: number, subIndustry?: string, limit?: number) =>
+    request<any>(`/api/mispricing/leaderboard${qs({ direction, year, sub_industry: subIndustry, limit })}`),
+
+  mispricingCompany: (ticker: string, year?: number) =>
+    request<any>(`/api/mispricing/company${qs({ ticker, year })}`),
+
+  mispricingScoreEffectiveness: (score: "piotroski" | "altman" | "beneish") =>
+    request<any>(`/api/mispricing/score-effectiveness${qs({ score })}`),
 };

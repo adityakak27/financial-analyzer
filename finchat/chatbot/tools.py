@@ -208,6 +208,67 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_valuation_check",
+            "description": "Mispricing Radar: get a company's Fundamental Quality Score (0-100, with its 4 pillars), "
+                           "its EV/Sales versus the quality-implied (expected) EV/Sales, the valuation gap and verdict "
+                           "(Undervalued / Fairly valued / Overvalued), whether the DCF model agrees, and the "
+                           "pre-written analyst note. Use this for ANY question about whether a company looks "
+                           "over/undervalued for its fundamentals, or 'cheap'/'expensive' relative to quality.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Company ticker, e.g. NVDA"},
+                    "year": {"type": "integer", "description": "Fiscal year (defaults to latest available)"},
+                },
+                "required": ["ticker"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_mispriced",
+            "description": "Mispricing Radar: leaderboard of companies that look most undervalued or most overvalued "
+                           "for their fundamental quality in a given fiscal year, optionally filtered to one "
+                           "sub-industry. Use this for questions like 'which tech companies look cheapest' or "
+                           "'what looks overvalued right now'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "year": {"type": "integer", "description": "Fiscal year (defaults to latest available)"},
+                    "direction": {"type": "string", "enum": ["under", "over"],
+                                  "description": "'under' for undervalued/cheapest, 'over' for overvalued/most expensive"},
+                    "sub_industry": {"type": "string",
+                                      "enum": ["Semiconductors", "Software & Services", "Hardware & Equipment"],
+                                      "description": "Optional sub-industry filter"},
+                    "limit": {"type": "integer", "description": "Max companies to return (default 10)"},
+                },
+                "required": ["direction"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_score_effectiveness",
+            "description": "Mispricing Radar (RQ3): did companies with a high/safe/clean Piotroski F, Altman Z, or "
+                           "Beneish M score actually go on to post better next-year revenue growth, net income "
+                           "growth, and stock return than companies with poor scores? Returns the grouped outcomes "
+                           "with sample sizes and significance tests. Use this for 'do high Piotroski scores lead "
+                           "to better returns' type questions.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "score": {"type": "string", "enum": ["piotroski", "altman", "beneish"],
+                              "description": "Which risk/forensic score to evaluate"},
+                },
+                "required": ["score"],
+            },
+        },
+    },
 ]
 
 PERCENT_METRICS = {"revenue_growth_pct", "net_income_growth_pct"}
@@ -616,6 +677,164 @@ def tool_generate_equity_research(ticker: str, year: int | None = None) -> dict[
     return res
 
 
+def tool_get_valuation_check(ticker: str, year: int | None = None) -> dict[str, Any]:
+    from finchat.engine.mispricing import (latest_mispricing_year, load_fit, load_mispricing_rows,
+                                            load_note, load_wf_fit)
+
+    ticker = (ticker or "").upper().strip()
+    if year is None:
+        year = latest_mispricing_year()
+    rows = load_mispricing_rows(year=year)
+    row = next((r for r in rows if r["ticker"] == ticker), None)
+    if row is None:
+        return {"error": f"No Mispricing Radar data for {ticker} in FY{year}. "
+                          f"Run 'python -m finchat mispricing' if the Radar hasn't been built yet."}
+
+    peers_in_year = [r for r in rows if r.get("gap_z") is not None]
+    peers_sorted = sorted(peers_in_year, key=lambda r: r["gap_z"])
+    percentile = None
+    if row.get("gap_z") is not None and peers_sorted:
+        rank = sum(1 for r in peers_sorted if r["gap_z"] <= row["gap_z"])
+        percentile = round(100 * rank / len(peers_sorted), 1)
+
+    same_year = load_fit(year, sub_industry="ALL")
+    wf = load_wf_fit(year, row.get("sub_industry") or "")
+    note = load_note(ticker, year)
+    has_model = bool(wf and wf.get("slope") is not None)
+
+    return {
+        "ticker": ticker, "fiscal_year": year, "sub_industry": row.get("sub_industry"),
+        "quality_score": row.get("quality_score"),
+        "pillars": {
+            "profitability": row.get("profitability"), "growth": row.get("growth"),
+            "safety": row.get("safety"), "earnings_quality": row.get("earnings_quality"),
+        },
+        "ev_sales": row.get("ev_sales"), "expected_ev_sales": row.get("expected_ev_sales"),
+        "actual_vs_expected_ev_sales_ratio": (round(row["ev_sales"] / row["expected_ev_sales"], 2)
+                                               if row.get("ev_sales") and row.get("expected_ev_sales") else None),
+        "valuation_gap_log_points": row.get("valuation_gap"), "gap_z": row.get("gap_z"),
+        "verdict": row.get("verdict"),
+        "gap_percentile_among_all_companies_this_year": percentile,
+        "verdict_model": {
+            "method": "walk-forward, sub-industry-relative fair-value line",
+            "sub_industry": row.get("sub_industry"),
+            "train_years": f"FY{wf['train_start']}-FY{wf['train_end']}" if has_model else None,
+            "train_n": wf.get("n") if has_model else None,
+        } if has_model else {"method": "none: no earlier fiscal years to train on"},
+        "fair_value_line_r2": wf.get("train_r2") if has_model else None,
+        "same_year_quality_valuation_r2": same_year.get("r2") if same_year else None,
+        "dcf_fair_value": row.get("dcf_fair_value"), "dcf_upside": row.get("dcf_upside"),
+        "dcf_agreement": row.get("dcf_agreement"),
+        "next_12m_excess_return_vs_xlk": row.get("excess_return_next_12m"),
+        "analyst_note": note.get("note_text") if note else None,
+        "note_numbers_validated": bool(note.get("numbers_validated")) if note else None,
+        "disclaimer": ("A valuation verdict is a statistical comparison with sub-industry peers, not a "
+                       "recommendation; in back-tests the verdicts did not predict next-year returns. "
+                       "Not investment advice."),
+        "source": {"type": "structured_lookup", "table": "mispricing"},
+    }
+
+
+def tool_list_mispriced(direction: str, year: int | None = None, sub_industry: str | None = None,
+                        limit: int = 10) -> dict[str, Any]:
+    from finchat.engine.mispricing import latest_mispricing_year, load_fit, load_mispricing_rows
+
+    if year is None:
+        year = latest_mispricing_year()
+    rows = load_mispricing_rows(year=year, sub_industry=sub_industry, direction=direction, limit=limit)
+    fit = load_fit(year, sub_industry=sub_industry or "ALL")
+    return {
+        "fiscal_year": year, "direction": direction, "sub_industry": sub_industry,
+        "verdict_method": ("each company vs its own sub-industry's fair-value line, fitted only on "
+                           "earlier fiscal years (walk-forward)"),
+        "same_year_quality_valuation_r2": fit.get("r2") if fit else None,
+        "n_companies": len(rows),
+        "companies": [
+            {"ticker": r["ticker"], "name": r.get("company_name"), "quality_score": r.get("quality_score"),
+             "ev_sales": r.get("ev_sales"), "valuation_gap_log_points": r.get("valuation_gap"),
+             "gap_z": r.get("gap_z"),
+             "verdict": r.get("verdict"), "dcf_upside": r.get("dcf_upside"),
+             "dcf_agreement": r.get("dcf_agreement")}
+            for r in rows
+        ],
+        "disclaimer": "Not investment advice.",
+        "source": {"type": "structured_lookup", "table": "mispricing"},
+    }
+
+
+def tool_get_score_effectiveness(score: str) -> dict[str, Any]:
+    from finchat.engine.mispricing import load_score_outcomes
+
+    score = (score or "").strip().lower()
+    if score not in ("piotroski", "altman", "beneish"):
+        return {"error": f"Unknown score '{score}'. Use 'piotroski', 'altman' or 'beneish'."}
+
+    rows = load_score_outcomes(score)
+    if not rows:
+        return {"error": f"No grouped outcomes available for {score}. "
+                          f"Run 'python -m finchat mispricing' if the Radar hasn't been built yet."}
+
+    return {
+        "score": score,
+        "groups": [
+            {"group": r["grp"], "n": r["n"],
+             "avg_next_year_revenue_growth_pct": round(r["rev_growth_next_mean"], 2) if r["rev_growth_next_mean"] is not None else None,
+             "avg_next_year_net_income_growth_pct": round(r["ni_growth_next_mean"], 2) if r["ni_growth_next_mean"] is not None else None,
+             "avg_next_12m_stock_return_pct": round(r["return_next_12m_mean"] * 100, 2) if r["return_next_12m_mean"] is not None else None,
+             "avg_next_12m_excess_return_vs_xlk_pct": round(r["excess_return_next_12m_mean"] * 100, 2) if r["excess_return_next_12m_mean"] is not None else None,
+             "loss_rate_next_year_pct": round(r["loss_next_mean"] * 100, 1) if r["loss_next_mean"] is not None else None}
+            for r in rows
+        ],
+        "interpretation": ("Grouped comparison of next-year outcomes by score tier, not a trained predictive model. "
+                           "Excess return = the stock's 12-month return minus the XLK tech ETF's over the same days. "
+                           "See the Mispricing Radar study (analysis/report/results.md) for significance tests."),
+        "disclaimer": "Not investment advice.",
+        "source": {"type": "structured_lookup", "table": "mispricing_score_outcomes"},
+    }
+
+
+def tool_get_mispricing_overview(year: int | None = None, sub_industry: str | None = None) -> dict[str, Any]:
+    """Backend-only bulk view for the Mispricing Radar page's scatter chart and stats strip.
+    Not a chatbot tool (not in TOOL_SCHEMAS) -- reads only, never computes or calls an LLM."""
+    from finchat.engine.mispricing import (latest_mispricing_year, list_sub_industries, load_fit,
+                                            load_mispricing_rows, load_wf_fit)
+    from finchat.db import get_db
+
+    if year is None:
+        year = latest_mispricing_year()
+    with get_db() as con:
+        years = sorted({int(r["fiscal_year"]) for r in con.execute("SELECT DISTINCT fiscal_year FROM mispricing").fetchall()})
+    rows = load_mispricing_rows(year=year, sub_industry=sub_industry)
+    fit = load_fit(year, sub_industry=sub_industry or "ALL")
+
+    # The verdict lines: one per sub-industry, shifted by the year's mean gap so that a point lying
+    # exactly on its sub-industry's line has gap z = 0 ("Fairly valued" at its centre).
+    lines = []
+    for sub in ([sub_industry] if sub_industry else list_sub_industries()):
+        wf = load_wf_fit(year, sub)
+        if wf and wf.get("slope") is not None and wf.get("year_gap_mean") is not None:
+            lines.append({"sub_industry": sub, "intercept": wf["intercept"] + wf["year_gap_mean"],
+                          "slope": wf["slope"], "train_start": wf["train_start"],
+                          "train_end": wf["train_end"], "train_r2": wf["train_r2"]})
+
+    return {
+        "fiscal_year": year, "available_years": years, "sub_industry": sub_industry,
+        "sub_industries": list_sub_industries(),
+        "fit": fit,
+        "verdict_lines": lines,
+        "n_companies": len(rows),
+        "n_with_verdict": sum(1 for r in rows if r.get("verdict") not in (None, "insufficient_data")),
+        "points": [
+            {"ticker": r["ticker"], "name": r.get("company_name"), "sub_industry": r.get("sub_industry"),
+             "quality_score": r.get("quality_score"), "ev_sales": r.get("ev_sales"),
+             "expected_ev_sales": r.get("expected_ev_sales"), "valuation_gap": r.get("valuation_gap"),
+             "gap_z": r.get("gap_z"), "verdict": r.get("verdict")}
+            for r in rows if r.get("quality_score") is not None and r.get("ev_sales") is not None
+        ],
+        "source": {"type": "structured_lookup", "table": "mispricing + mispricing_fit"},
+    }
+
+
 TOOL_IMPLS = {
     "get_ratio": lambda args: tool_get_ratio(args.get("ticker"), args.get("metric", ""), args.get("year")),
     "get_scores": lambda args: tool_get_scores(args.get("ticker"), args.get("year")),
@@ -652,6 +871,17 @@ TOOL_IMPLS = {
         args.get("ticker", ""),
         int(args["year"]) if args.get("year") else None,
     ),
+    "get_valuation_check": lambda args: tool_get_valuation_check(
+        args.get("ticker", ""),
+        int(args["year"]) if args.get("year") else None,
+    ),
+    "list_mispriced": lambda args: tool_list_mispriced(
+        args.get("direction", "under"),
+        int(args["year"]) if args.get("year") else None,
+        args.get("sub_industry"),
+        int(args.get("limit", 10) or 10),
+    ),
+    "get_score_effectiveness": lambda args: tool_get_score_effectiveness(args.get("score", "")),
 }
 
 

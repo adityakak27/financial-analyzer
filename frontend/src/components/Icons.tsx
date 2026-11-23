@@ -50,6 +50,15 @@ export const ValuationIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+export const RadarIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" />
+    <path d="M12 12L19 7" />
+  </svg>
+);
+
 export const ResearchIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <path d="M6 3h9l4 4v14H6z" />

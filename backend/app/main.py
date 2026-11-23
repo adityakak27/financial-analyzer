@@ -17,11 +17,15 @@ from finchat.chatbot.tools import (
     tool_compare_companies,
     tool_get_line_items,
     tool_get_metric_history,
+    tool_get_mispricing_overview,
     tool_get_peer_ranking,
     tool_get_ratio,
+    tool_get_score_effectiveness,
     tool_get_scores,
     tool_get_text_sentiment,
+    tool_get_valuation_check,
     tool_list_companies,
+    tool_list_mispriced,
     tool_list_years,
     tool_run_dcf_valuation,
     tool_search_filings,
@@ -127,6 +131,34 @@ async def dcf(req: DCFRequest) -> dict:
 @app.post("/api/research")
 async def research(req: ResearchRequest) -> dict:
     result = await asyncio.to_thread(tool_generate_equity_research, req.ticker, req.year)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.get("/api/mispricing/overview")
+def mispricing_overview(year: int | None = None, sub_industry: str | None = None) -> dict:
+    return tool_get_mispricing_overview(year, sub_industry)
+
+
+@app.get("/api/mispricing/leaderboard")
+def mispricing_leaderboard(
+    direction: str, year: int | None = None, sub_industry: str | None = None, limit: int = 10,
+) -> dict:
+    return tool_list_mispriced(direction, year, sub_industry, limit)
+
+
+@app.get("/api/mispricing/company")
+def mispricing_company(ticker: str, year: int | None = None) -> dict:
+    result = tool_get_valuation_check(ticker, year)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.get("/api/mispricing/score-effectiveness")
+def mispricing_score_effectiveness(score: str) -> dict:
+    result = tool_get_score_effectiveness(score)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result

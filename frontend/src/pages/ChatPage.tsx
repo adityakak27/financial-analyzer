@@ -13,6 +13,9 @@ const SUGGESTIONS = [
   "Does Intel look like a distress risk?",
   "Run a DCF valuation for AAPL",
   "What supply chain risks did NVIDIA disclose?",
+  "Is Nvidia overvalued for its quality?",
+  "Which tech companies look cheapest right now?",
+  "Do high Piotroski scores lead to better returns?",
 ];
 
 function citationLabel(c: Citation): string {

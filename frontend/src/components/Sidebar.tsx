@@ -9,6 +9,7 @@ import {
   DashboardIcon,
   FilingsIcon,
   PlusIcon,
+  RadarIcon,
   ResearchIcon,
   SearchIcon,
   TrashIcon,
@@ -20,6 +21,7 @@ const LINKS = [
   { to: "/dashboard", label: "Company Dashboard", icon: DashboardIcon },
   { to: "/compare", label: "Compare / Duel", icon: CompareIcon },
   { to: "/valuation", label: "DCF Valuation", icon: ValuationIcon },
+  { to: "/mispricing", label: "Mispricing Radar", icon: RadarIcon },
   { to: "/research", label: "Research Report", icon: ResearchIcon },
   { to: "/filings", label: "Filings Search", icon: FilingsIcon },
 ];
