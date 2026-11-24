@@ -82,6 +82,24 @@ sustainable long-standing well-positioned positioned record higher best greater 
 """.split()
 
 
+def _in_category(value: str | None) -> bool:
+    """True if a Loughran-McDonald category cell marks the word as a member.
+
+    The official Master Dictionary stores the year a word was added (e.g. "2009"), 0 for
+    non-members, and a negative year (e.g. "-2020") for words later removed. Older or
+    hand-made lists may use "Y"/"N" instead; both formats are accepted.
+    """
+    v = (value or "").strip()
+    if not v:
+        return False
+    if v.upper().startswith("Y"):
+        return True
+    try:
+        return float(v) > 0
+    except ValueError:
+        return False
+
+
 @lru_cache(maxsize=2)
 def load_lexicon() -> tuple[set[str], set[str]]:
     path = Path(LM_LEXICON_PATH)
@@ -99,9 +117,9 @@ def load_lexicon() -> tuple[set[str], set[str]]:
                     w = (row.get(word_col) or "").strip().lower()
                     if not w:
                         continue
-                    if neg_col and (row.get(neg_col) or "").strip().upper().startswith("Y"):
+                    if neg_col and _in_category(row.get(neg_col)):
                         neg.add(w)
-                    if pos_col and (row.get(pos_col) or "").strip().upper().startswith("Y"):
+                    if pos_col and _in_category(row.get(pos_col)):
                         pos.add(w)
         if neg or pos:
             return neg, pos

@@ -2,6 +2,31 @@
 
 *57 US technology companies, FY2018-FY2024 (399 company-years), built on SEC 10-K filings.*
 
+## Executive summary
+
+**The market pays for fundamental quality, but only a little, and a "cheap for its quality" signal
+does not predict returns.** A 0-100 Fundamental Quality Score built from SEC 10-K fundamentals
+correlates with valuation at r=0.37 and explains 14.1% of the spread in
+EV/Sales. Tested out of sample -- each company judged against its own sub-industry, with a fair-value
+line fitted only on earlier years, and returns measured against the XLK tech ETF -- "undervalued"
+companies did not beat "overvalued" ones. The classic risk scores do not predict excess returns, and
+management tone describes the past rather than the future. Every number is computed by deterministic
+code; the AI layer (Gemini) only narrates verified outputs, and each of its figures is checked
+against the data before publication.
+
+| Question | Hypothesis | Result | Verdict |
+| --- | --- | --- | --- |
+| RQ1 Quality vs valuation | Higher quality, higher multiple | r=0.37; quality explains 14.1% (p<0.001) | Supported, but weak |
+| RQ2 Mispricing | "Undervalued" beats "overvalued" next year | -3.0% vs +1.1% vs XLK (p=0.642) | Not supported |
+| RQ3 Risk scores | Strong scores beat weak scores | No excess-return edge; Altman flags weaker growth (p=0.006) | Mostly not supported |
+| RQ4 Management tone | Upbeat tone, better results | Same year r=0.32; next year r=-0.01 | Describes the past only |
+| RQ5 Sub-industries | Valuation logic differs by sector | Quality-valuation link r=0.07 to 0.50 | Supported |
+
+![Screenshot_Radar_Chart](outputs/figures/Screenshot_Radar_Chart.png)
+
+*The Mispricing Radar page in the FinChat app: each company's quality vs valuation, judged against its
+own sub-industry's line, with leaderboards and a back-test caveat.*
+
 ## Research questions
 
 - **RQ1.** Do higher-quality companies trade at higher valuation multiples, and how much of valuation does quality explain?
@@ -12,24 +37,7 @@
 
 ## Data and sample
 
-| table                     |   rows |   cols | tickers    | fy_range   |
-|:--------------------------|-------:|-------:|:-----------|:-----------|
-| companies                 |     57 |      4 | 57 tickers | -          |
-| statements                |  12003 |      7 | 57 tickers | 2018-2024  |
-| ratios                    |  11644 |      4 | 57 tickers | 2018-2024  |
-| quarterly_statements      |      0 |      9 | 0 tickers  | -          |
-| quarterly_ratios          |      0 |      6 | 0 tickers  | -          |
-| scores                    |    399 |      9 | 57 tickers | 2018-2024  |
-| peer_ranks                |   9733 |      6 | 57 tickers | 2018-2024  |
-| filings                   |    397 |      8 | 57 tickers | 2018-2024  |
-| chunks                    | 250554 |      6 | 57 tickers | 2018-2024  |
-| textstats                 |   1189 |      8 | 57 tickers | 2018-2024  |
-| prices                    | 103639 |      4 | 58 tickers | -          |
-| mispricing                |    396 |     23 | 57 tickers | -          |
-| mispricing_wf_fit         |     21 |     10 | -          | -          |
-| mispricing_fit            |     28 |      8 | -          | -          |
-| mispricing_notes          |    332 |      6 | 57 tickers | -          |
-| mispricing_score_outcomes |      8 |     14 | -          | -          |
+
 
 - **Companies:** 57 -- the 19-ticker FinChat universe plus 38 S&P 500 Information Technology
   constituents with a full FY2018-2024 10-K history. ANSYS and Juniper Networks were dropped: both were
@@ -40,18 +48,18 @@
 
 **Sample attrition.** Every stage below loses company-years for a stated reason:
 
-| stage                                                              |   n |
-|:-------------------------------------------------------------------|----:|
-| Company-years collected (57 x 7)                                   | 399 |
-| With a Quality Score                                               | 396 |
-| With EV/Sales (needs price + diluted shares)                       | 386 |
-| RQ1 simple regression (Quality + EV/Sales)                         | 383 |
-| RQ1 controlled regression (+ revenue growth, needs prior year)     | 330 |
-| With a walk-forward verdict (FY2019+; FY2018 has no training data) | 332 |
-| With a next-12m excess return                                      | 397 |
-| With Piotroski F                                                   | 342 |
-| With Altman Z (point-in-time)                                      | 375 |
-| With Beneish M                                                     | 157 |
+| Stage                                                              |   Company-years |
+|:-------------------------------------------------------------------|----------------:|
+| Company-years collected (57 x 7)                                   |             399 |
+| With a Quality Score                                               |             396 |
+| With EV/Sales (needs price + diluted shares)                       |             386 |
+| RQ1 simple regression (Quality + EV/Sales)                         |             383 |
+| RQ1 controlled regression (+ revenue growth, needs prior year)     |             330 |
+| With a walk-forward verdict (FY2019+; FY2018 has no training data) |             332 |
+| With a next-12m excess return                                      |             397 |
+| With Piotroski F                                                   |             342 |
+| With Altman Z (point-in-time)                                      |             375 |
+| With Beneish M                                                     |             157 |
 
 ## Method
 
@@ -91,10 +99,10 @@
 
 ### RQ1 -- Quality vs valuation
 
-| model                                                                  |   slope_on_QualityScore |     p_value |   r_squared |   n |
-|:-----------------------------------------------------------------------|------------------------:|------------:|------------:|----:|
-| Simple (QualityScore only)                                             |                 0.02601 | 3.18813e-14 |       0.141 | 383 |
-| With controls (revenue growth, year FE, sub-industry FE; clustered SE) |                 0.02223 | 0.00323149  |       0.323 | 330 |
+| Model                                                                  |   Slope on Quality Score | p-value   |    R² |   N |
+|:-----------------------------------------------------------------------|-------------------------:|:----------|------:|----:|
+| Simple (QualityScore only)                                             |                   0.026  | <0.001    | 0.141 | 383 |
+| With controls (revenue growth, year FE, sub-industry FE; clustered SE) |                   0.0222 | 0.003     | 0.323 | 330 |
 
 Quality and valuation are positively correlated (Pearson r=0.37, p<0.001, N=383). On its
 own the Quality Score explains 14.1% of the variation in log(EV/Sales). Adding
@@ -119,51 +127,51 @@ r=0.54 in FY2024.
 FY2024 companies with the lowest and highest gap z-scores (each judged against its own sub-industry's
 line, trained on FY2018-FY2023):
 
-| ticker   | sub_industry         |   QualityScore |   ev_sales |   expected_ev_sales |     gap_z | verdict       |   dcf_upside | dcf_agreement   |
-|:---------|:---------------------|---------------:|-----------:|--------------------:|----------:|:--------------|-------------:|:----------------|
-| DXC      | Software & Services  |           31.4 |    1.05292 |             3.53949 | -2.74746  | Undervalued   |     2.65593  | agrees          |
-| CTSH     | Software & Services  |           37.4 |    1.86486 |             4.0474  | -2.01217  | Undervalued   |    -0.414909 | disagrees       |
-| CDW      | Software & Services  |           28.6 |    1.82942 |             3.32479 | -1.72391  | Undervalued   |    -0.706719 | disagrees       |
-| DELL     | Hardware & Equipment |           38.5 |    1.15121 |             2.02806 | -1.67332  | Undervalued   |    -0.406575 | disagrees       |
-| HPQ      | Hardware & Equipment |           33.5 |    1.05292 |             1.7071  | -1.56316  | Undervalued   |    -0.127238 | disagrees       |
-| JBL      | Hardware & Equipment |           31.1 |    1.05292 |             1.57161 | -1.42885  | Undervalued   |     1.14392  | agrees          |
-| ACN      | Software & Services  |           47.7 |    3.47562 |             5.09504 | -1.37486  | Undervalued   |    -0.477172 | disagrees       |
-| HPE      | Hardware & Equipment |           31.5 |    1.17788 |             1.59342 | -1.2444   | Undervalued   |     0.580933 | agrees          |
-| APH      | Hardware & Equipment |           45.6 |    1.94449 |             2.59015 | -1.2193   | Undervalued   |     0.449549 | agrees          |
-| AKAM     | Software & Services  |           44.8 |    3.78195 |             4.7753  | -1.13241  | Undervalued   |     0.24265  | agrees          |
-| EPAM     | Software & Services  |           40.7 |    3.46764 |             4.35719 | -1.12451  | Undervalued   |    -0.10092  | disagrees       |
-| SWKS     | Semiconductors       |           58.9 |    3.09898 |             3.67275 | -1.02952  | Undervalued   |     3.53462  | agrees          |
-| GDDY     | Software & Services  |           41.3 |    4.45629 |             4.41601 | -0.73888  | Fairly valued |     0.856072 | n/a             |
-| CRM      | Software & Services  |           66.2 |    8.43853 |             7.70383 | -0.605686 | Fairly valued |     0.172901 | n/a             |
-| GLW      | Hardware & Equipment |           34.8 |    2.02183 |             1.7853  | -0.55156  | Fairly valued |    -0.152194 | n/a             |
+| Ticker   | Sub-industry         |   Quality | EV/Sales   | Expected EV/Sales   |   Gap z | Verdict       | DCF upside   | DCF       |
+|:---------|:---------------------|----------:|:-----------|:--------------------|--------:|:--------------|:-------------|:----------|
+| DXC      | Software & Services  |      31.4 | 1.1x       | 3.5x                |   -2.75 | Undervalued   | +265.6%      | agrees    |
+| CTSH     | Software & Services  |      37.4 | 1.9x       | 4.0x                |   -2.01 | Undervalued   | -41.5%       | disagrees |
+| CDW      | Software & Services  |      28.6 | 1.8x       | 3.3x                |   -1.72 | Undervalued   | -70.7%       | disagrees |
+| DELL     | Hardware & Equipment |      38.5 | 1.2x       | 2.0x                |   -1.67 | Undervalued   | -40.7%       | disagrees |
+| HPQ      | Hardware & Equipment |      33.5 | 1.1x       | 1.7x                |   -1.56 | Undervalued   | -12.7%       | disagrees |
+| JBL      | Hardware & Equipment |      31.1 | 1.1x       | 1.6x                |   -1.43 | Undervalued   | +114.4%      | agrees    |
+| ACN      | Software & Services  |      47.7 | 3.5x       | 5.1x                |   -1.37 | Undervalued   | -47.7%       | disagrees |
+| HPE      | Hardware & Equipment |      31.5 | 1.2x       | 1.6x                |   -1.24 | Undervalued   | +58.1%       | agrees    |
+| APH      | Hardware & Equipment |      45.6 | 1.9x       | 2.6x                |   -1.22 | Undervalued   | +45.0%       | agrees    |
+| AKAM     | Software & Services  |      44.8 | 3.8x       | 4.8x                |   -1.13 | Undervalued   | +24.3%       | agrees    |
+| EPAM     | Software & Services  |      40.7 | 3.5x       | 4.4x                |   -1.12 | Undervalued   | -10.1%       | disagrees |
+| SWKS     | Semiconductors       |      58.9 | 3.1x       | 3.7x                |   -1.03 | Undervalued   | +353.5%      | agrees    |
+| GDDY     | Software & Services  |      41.3 | 4.5x       | 4.4x                |   -0.74 | Fairly valued | +85.6%       | n/a       |
+| CRM      | Software & Services  |      66.2 | 8.4x       | 7.7x                |   -0.61 | Fairly valued | +17.3%       | n/a       |
+| GLW      | Hardware & Equipment |      34.8 | 2.0x       | 1.8x                |   -0.55 | Fairly valued | -15.2%       | n/a       |
 
-| ticker   | sub_industry         |   QualityScore |   ev_sales |   expected_ev_sales |    gap_z | verdict       |   dcf_upside | dcf_agreement   |
-|:---------|:---------------------|---------------:|-----------:|--------------------:|---------:|:--------------|-------------:|:----------------|
-| AVGO     | Semiconductors       |           54.8 |   17.9321  |             3.62958 | 1.83644  | Overvalued    |   -0.618757  | agrees          |
-| MPWR     | Semiconductors       |           44.4 |   15.5408  |             3.52234 | 1.65716  | Overvalued    |   -0.310389  | agrees          |
-| NVDA     | Semiconductors       |          100   |   17.9321  |             4.13487 | 1.62475  | Overvalued    |   -0.405668  | agrees          |
-| VRSN     | Software & Services  |           22.1 |   12.0881  |             2.87525 | 1.57878  | Overvalued    |   -0.211605  | agrees          |
-| ADI      | Semiconductors       |           39   |   12.0832  |             3.46792 | 1.27373  | Overvalued    |   -0.71456   | agrees          |
-| WDC      | Hardware & Equipment |           18.6 |    3.44415 |             1.02163 | 1.22016  | Overvalued    |   -2.25578   | agrees          |
-| CDNS     | Software & Services  |           52.1 |   17.1436  |             5.62152 | 1.05733  | Overvalued    |   -0.774478  | agrees          |
-| AMD      | Semiconductors       |           38.5 |   10.5138  |             3.46292 | 1.0501   | Overvalued    |   -0.886966  | agrees          |
-| KLAC     | Semiconductors       |           48.4 |   10.238   |             3.56321 | 0.960567 | Fairly valued |   -0.593329  | n/a             |
-| FICO     | Software & Services  |           57.7 |   17.9321  |             6.37098 | 0.922636 | Fairly valued |   -0.775912  | n/a             |
-| KEYS     | Hardware & Equipment |           39.9 |    5.84384 |             2.12828 | 0.886876 | Fairly valued |   -0.618132  | n/a             |
-| TXN      | Semiconductors       |           48.2 |    9.73856 |             3.56115 | 0.880275 | Fairly valued |   -0.923542  | n/a             |
-| AAPL     | Hardware & Equipment |           53.2 |    8.86394 |             3.36553 | 0.819204 | Fairly valued |   -0.582638  | n/a             |
-| SNPS     | Software & Services  |           45.8 |   11.8973  |             4.88322 | 0.692689 | Fairly valued |   -0.758362  | n/a             |
-| MSI      | Hardware & Equipment |           43.2 |    5.47445 |             2.38458 | 0.59615  | Fairly valued |   -0.0275075 | n/a             |
+| Ticker   | Sub-industry         |   Quality | EV/Sales   | Expected EV/Sales   |   Gap z | Verdict       | DCF upside   | DCF    |
+|:---------|:---------------------|----------:|:-----------|:--------------------|--------:|:--------------|:-------------|:-------|
+| AVGO     | Semiconductors       |      54.8 | 17.9x      | 3.6x                |    1.84 | Overvalued    | -61.9%       | agrees |
+| MPWR     | Semiconductors       |      44.4 | 15.5x      | 3.5x                |    1.66 | Overvalued    | -31.0%       | agrees |
+| NVDA     | Semiconductors       |     100   | 17.9x      | 4.1x                |    1.62 | Overvalued    | -40.6%       | agrees |
+| VRSN     | Software & Services  |      22.1 | 12.1x      | 2.9x                |    1.58 | Overvalued    | -21.2%       | agrees |
+| ADI      | Semiconductors       |      39   | 12.1x      | 3.5x                |    1.27 | Overvalued    | -71.5%       | agrees |
+| WDC      | Hardware & Equipment |      18.6 | 3.4x       | 1.0x                |    1.22 | Overvalued    | -225.6%      | agrees |
+| CDNS     | Software & Services  |      52.1 | 17.1x      | 5.6x                |    1.06 | Overvalued    | -77.4%       | agrees |
+| AMD      | Semiconductors       |      38.5 | 10.5x      | 3.5x                |    1.05 | Overvalued    | -88.7%       | agrees |
+| KLAC     | Semiconductors       |      48.4 | 10.2x      | 3.6x                |    0.96 | Fairly valued | -59.3%       | n/a    |
+| FICO     | Software & Services  |      57.7 | 17.9x      | 6.4x                |    0.92 | Fairly valued | -77.6%       | n/a    |
+| KEYS     | Hardware & Equipment |      39.9 | 5.8x       | 2.1x                |    0.89 | Fairly valued | -61.8%       | n/a    |
+| TXN      | Semiconductors       |      48.2 | 9.7x       | 3.6x                |    0.88 | Fairly valued | -92.4%       | n/a    |
+| AAPL     | Hardware & Equipment |      53.2 | 8.9x       | 3.4x                |    0.82 | Fairly valued | -58.3%       | n/a    |
+| SNPS     | Software & Services  |      45.8 | 11.9x      | 4.9x                |    0.69 | Fairly valued | -75.8%       | n/a    |
+| MSI      | Hardware & Equipment |      43.2 | 5.5x       | 2.4x                |    0.6  | Fairly valued | -2.8%        | n/a    |
 
 In FY2024, 20 companies were flagged undervalued or overvalued; the DCF agreed with
 14 and disagreed with 6 (this count is for FY2024 only). 8 of 8 overvalued names also show DCF downside. 6 of 12 undervalued names (ACN, CDW, CTSH, DELL, EPAM, HPQ) show DCF downside instead: a low EV/Sales can reflect low margins rather than mispricing, which EV/Sales cannot see.
 
 **Did the verdicts predict returns?** Out of sample, FY2019-FY2024 pooled:
 
-| outcome                |   n_under |   mean_under |   n_over |   mean_over |   difference |   t_stat |   t_pvalue |   u_pvalue |
-|:-----------------------|----------:|-------------:|---------:|------------:|-------------:|---------:|-----------:|-----------:|
-| excess_return_next_12m |        64 |      -0.0302 |       44 |      0.0108 |      -0.0409 |   -0.466 |     0.6422 |     0.8146 |
-| return_next_12m        |        64 |       0.2208 |       44 |      0.2532 |      -0.0325 |   -0.335 |     0.7386 |     0.9327 |
+| Outcome                |   n undervalued | Mean, undervalued   |   n overvalued | Mean, overvalued   | Difference   |   t-test p |   Mann-Whitney p |
+|:-----------------------|----------------:|:--------------------|---------------:|:-------------------|:-------------|-----------:|-----------------:|
+| Next-12m return vs XLK |              64 | -3.0%               |             44 | +1.1%              | -4.1%        |      0.642 |            0.815 |
+| Next-12m raw return    |              64 | +22.1%              |             44 | +25.3%             | -3.2%        |      0.739 |            0.933 |
 
 Undervalued companies earned -3.0% in excess of XLK over the next 12 months versus
 1.1% for overvalued ones (n=64 vs 44; p=0.642, Mann-Whitney
@@ -180,25 +188,25 @@ years and all sub-industries, reported an apparent edge; it does not survive the
 
 ### RQ3 -- Do the risk scores predict anything?
 
-| score       | group            |   n |   rev_growth_next_mean |   rev_growth_next_median |   ni_growth_next_mean |   ni_growth_next_median |   return_next_12m_mean |   return_next_12m_median |   excess_return_next_12m_mean |   excess_return_next_12m_median |   loss_next_mean |   loss_next_median |
-|:------------|:-----------------|----:|-----------------------:|-------------------------:|----------------------:|------------------------:|-----------------------:|-------------------------:|------------------------------:|--------------------------------:|-----------------:|-------------------:|
-| piotroski_f | low (0-3)        |  26 |                 8.0239 |                  11.8638 |              -99.445  |                -15.2413 |                 0.206  |                   0.1614 |                       -0.0609 |                         -0.0467 |           0.2222 |                  0 |
-| piotroski_f | mid (4-6)        | 195 |                12.0949 |                   7.2228 |               63.7345 |                  5.7226 |                 0.2434 |                   0.1923 |                       -0.015  |                         -0.0481 |           0.0323 |                  0 |
-| piotroski_f | high (7-9)       | 121 |                 7.2421 |                   8.4675 |               12.3842 |                  7.1596 |                 0.2498 |                   0.1747 |                        0.0128 |                         -0.0299 |           0.0495 |                  0 |
-| altman_z    | distress (<1.81) |  57 |                 5.735  |                   3.4048 |             -198.546  |                -56.1028 |                 0.2408 |                   0.199  |                        0.0058 |                         -0.023  |           0.325  |                  0 |
-| altman_z    | grey (1.81-3.0)  |  74 |                 4.7727 |                   4.3756 |               87.6925 |                  1.1869 |                 0.2103 |                   0.151  |                       -0.0181 |                         -0.0532 |           0.0462 |                  0 |
-| altman_z    | safe (>3.0)      | 244 |                11.6451 |                   9.5183 |              101.728  |                 11.5287 |                 0.2447 |                   0.1958 |                        0.0059 |                         -0.0299 |           0.0149 |                  0 |
-| beneish_m   | flagged (>-1.78) |  10 |                20.023  |                   1.3351 |              -41.6835 |                 -2.2009 |                 0.3078 |                   0.1523 |                        0.1443 |                          0.1497 |           0      |                  0 |
-| beneish_m   | not flagged      | 147 |                 8.3497 |                   3.9345 |               42.385  |                  3.9    |                 0.2728 |                   0.19   |                        0.0061 |                         -0.0315 |           0.0407 |                  0 |
+| Score       | Group            |   N | Next-year revenue growth   | Next-12m return vs XLK   | Loss next year   |
+|:------------|:-----------------|----:|:---------------------------|:-------------------------|:-----------------|
+| Piotroski F | low (0-3)        |  26 | 8.0%                       | -6.1%                    | 22%              |
+| Piotroski F | mid (4-6)        | 195 | 12.1%                      | -1.5%                    | 3%               |
+| Piotroski F | high (7-9)       | 121 | 7.2%                       | +1.3%                    | 5%               |
+| Altman Z    | distress (<1.81) |  57 | 5.7%                       | +0.6%                    | 32%              |
+| Altman Z    | grey (1.81-3.0)  |  74 | 4.8%                       | -1.8%                    | 5%               |
+| Altman Z    | safe (>3.0)      | 244 | 11.6%                      | +0.6%                    | 1%               |
+| Beneish M   | flagged (>-1.78) |  10 | 20.0%                      | +14.4%                   | 0%               |
+| Beneish M   | not flagged      | 147 | 8.3%                       | +0.6%                    | 4%               |
 
-| score       | outcome                |   n_weak |   n_strong |   mean_weak |   mean_strong |   t_stat |   t_pvalue |   u_pvalue |
-|:------------|:-----------------------|---------:|-----------:|------------:|--------------:|---------:|-----------:|-----------:|
-| piotroski_f | excess_return_next_12m |       26 |        120 |     -0.0609 |        0.0128 |    0.999 |     0.3242 |     0.6216 |
-| piotroski_f | rev_growth_next        |       19 |        101 |      8.0239 |        7.2421 |   -0.236 |     0.8152 |     0.8236 |
-| altman_z    | excess_return_next_12m |       55 |        244 |      0.0058 |        0.0059 |    0.002 |     0.9985 |     0.9429 |
-| altman_z    | rev_growth_next        |       49 |        204 |      5.735  |       11.6451 |    2.817 |     0.0057 |     0.0203 |
-| beneish_m   | excess_return_next_12m |       10 |        146 |      0.1443 |        0.0061 |   -1.181 |     0.2632 |     0.1681 |
-| beneish_m   | rev_growth_next        |        8 |        123 |     20.023  |        8.3497 |   -0.978 |     0.3589 |     0.5676 |
+| Score       | Outcome                     |   n weak |   n strong | Mean, weak   | Mean, strong   |   t-test p |   Mann-Whitney p |
+|:------------|:----------------------------|---------:|-----------:|:-------------|:---------------|-----------:|-----------------:|
+| Piotroski F | next-12-month excess return |       26 |        120 | -6.1%        | +1.3%          |      0.324 |            0.622 |
+| Piotroski F | next-year revenue growth    |       19 |        101 | 8.0%         | 7.2%           |      0.815 |            0.824 |
+| Altman Z    | next-12-month excess return |       55 |        244 | +0.6%        | +0.6%          |      0.999 |            0.943 |
+| Altman Z    | next-year revenue growth    |       49 |        204 | 5.7%         | 11.6%          |      0.006 |            0.02  |
+| Beneish M   | next-12-month excess return |       10 |        146 | +14.4%       | +0.6%          |      0.263 |            0.168 |
+| Beneish M   | next-year revenue growth    |        8 |        123 | 20.0%        | 8.3%           |      0.359 |            0.568 |
 
 No score separates next-year **excess returns** (every p>0.05 on both tests). The clearest result is Altman Z and next-year **revenue growth**: "safe" companies grew revenue
 11.6% on average versus 5.7% for "distress"
@@ -215,26 +223,26 @@ companies in its smaller group; Beneish M exists for only 157 of
 
 ### RQ4 -- Management tone vs reality
 
-| x                     | y                               |   n |   pearson_r |   p_value |
-|:----------------------|:--------------------------------|----:|------------:|----------:|
-| mda_polarity          | same-year revenue growth        | 335 |       0.322 |    0      |
-| mda_polarity          | same-year ROE                   | 378 |       0.082 |    0.1101 |
-| mda_polarity          | next-year revenue growth        | 333 |       0.083 |    0.1292 |
-| mda_polarity          | next-12m excess return (vs XLK) | 395 |      -0.01  |    0.8428 |
-| polarity_change (YoY) | revenue_growth_change (YoY)     | 277 |       0.249 |    0      |
+| Tone measure       | Compared with                   |   N |   Pearson r | p-value   |
+|:-------------------|:--------------------------------|----:|------------:|:----------|
+| MD&A tone          | same-year revenue growth        | 335 |        0.32 | <0.001    |
+| MD&A tone          | same-year ROE                   | 378 |        0.08 | 0.110     |
+| MD&A tone          | next-year revenue growth        | 333 |        0.08 | 0.129     |
+| MD&A tone          | next-12m excess return (vs XLK) | 395 |       -0.01 | 0.843     |
+| YoY change in tone | revenue_growth_change           | 277 |        0.25 | <0.001    |
 
-| ticker   |   fy |   mda_polarity |   revenue_growth_pct |   rev_growth_next |
-|:---------|-----:|---------------:|---------------------:|------------------:|
-| TXN      | 2023 |       0.613636 |            -12.5275  |        -10.7198   |
-| INTC     | 2022 |       0.375    |            -20.2091  |        -13.9975   |
-| TXN      | 2024 |       0.375    |            -10.7198  |        nan        |
-| CDW      | 2023 |       0.349398 |             -9.99086 |         -1.76506  |
-| TXN      | 2019 |       0.319149 |             -8.87608 |          0.542307 |
-| AMD      | 2023 |       0.258824 |             -3.90238 |         13.6905   |
-| TYL      | 2021 |      -0.107914 |             42.5933  |         16.1979   |
-| GDDY     | 2021 |      -0.123077 |             15.0451  |          7.22279  |
-| NXPI     | 2021 |      -0.138075 |             28.4603  |         19.3618   |
-| KLAC     | 2020 |      -0.188811 |             27.0857  |         19.1565   |
+| Ticker   |   FY |   MD&A tone | Revenue growth   | Next-year revenue growth   |
+|:---------|-----:|------------:|:-----------------|:---------------------------|
+| TXN      | 2023 |        0.61 | -12.5%           | -10.7%                     |
+| INTC     | 2022 |        0.38 | -20.2%           | -14.0%                     |
+| TXN      | 2024 |        0.38 | -10.7%           | n/a                        |
+| CDW      | 2023 |        0.35 | -10.0%           | -1.8%                      |
+| TXN      | 2019 |        0.32 | -8.9%            | 0.5%                       |
+| AMD      | 2023 |        0.26 | -3.9%            | 13.7%                      |
+| TYL      | 2021 |       -0.11 | 42.6%            | 16.2%                      |
+| GDDY     | 2021 |       -0.12 | 15.0%            | 7.2%                       |
+| NXPI     | 2021 |       -0.14 | 28.5%            | 19.4%                      |
+| KLAC     | 2020 |       -0.19 | 27.1%            | 19.2%                      |
 
 MD&A tone tracks the year that has just happened (r=0.32 with same-year revenue
 growth, p<0.001) but not the next one (r=0.08 with next-year revenue
@@ -245,11 +253,11 @@ p=0.843). Tone confirms the past; it does not predict the future.
 
 ### RQ5 -- Sub-industry differences
 
-| sub_industry         |   n_company_years |   avg_quality_score |   avg_ev_sales |   avg_excess_return_next_12m |   quality_valuation_corr |
-|:---------------------|------------------:|--------------------:|---------------:|-----------------------------:|-------------------------:|
-| Hardware & Equipment |               126 |                39.1 |           2.9  |                       -0.025 |                    0.504 |
-| Semiconductors       |               119 |                50.4 |           5.2  |                        0.054 |                    0.066 |
-| Software & Services  |               154 |                47.4 |           7.13 |                       -0.016 |                    0.344 |
+| Sub-industry         |   Company-years |   Avg Quality Score | Avg EV/Sales   | Avg next-12m return vs XLK   |   Quality-valuation r |
+|:---------------------|----------------:|--------------------:|:---------------|:-----------------------------|----------------------:|
+| Hardware & Equipment |             126 |                39.1 | 2.9x           | -2.5%                        |                  0.5  |
+| Semiconductors       |             119 |                50.4 | 5.2x           | +5.4%                        |                  0.07 |
+| Software & Services  |             154 |                47.4 | 7.1x           | -1.6%                        |                  0.34 |
 
 The quality-valuation link is strongest in Hardware & Equipment (r=0.50)
 and weakest in Semiconductors (r=0.07). Semiconductors have the highest average Quality Score yet the weakest link, consistent with them being priced on the cycle and growth narratives rather than steady fundamentals. Multiples differ sharply by sub-industry
@@ -290,17 +298,10 @@ gemini-flash-lite-latest); full answers are in `analysis/outputs/chat_demo.md`.
 | Which tech companies look cheapest right now?    | list_mispriced          |                            0 |
 | Do high Piotroski scores lead to better returns? | get_score_effectiveness |                            0 |
 
-Example -- *"Is Nvidia overvalued for its quality?"*:
+![Screenshot_Chat_Answer_Crop](outputs/figures/Screenshot_Chat_Answer_Crop.png)
 
-> Based on the Mispricing Radar analysis for fiscal year 2024, Nvidia (**NVDA**) has a Fundamental Quality Score of **100.0/100** (broken down as profitability 91.5, growth 100.0, safety 85.7, and earnings quality 57.3). 
-> 
-> Key valuation details from the tool output:
-> - **EV/Sales Multiple:** 17.9x actual versus an expected 4.1x for that quality level (**actual_vs_expected_ev_sales_ratio**: 4.34x its expected multiple).
-> - **Valuation Gap:** The log-point valuation gap is 1.46 (with a gap z-score of 1.62 and a gap percentile among all companies of 96.4th).
-> - **Verdict:** Overvalued (judged against a walk-forward, sub-industry-relative fair-value line fitted on earlier years FY2018-FY2023, with an R² of 0.00).
-> - **DCF Model:** The DCF model implies a fair value of **$40.10** (an implied upside/downside of -40.6%), which agrees with the quality-versus-valuation signal.
-> 
-> *A valuation verdict is a statistical comparison with sub-industry peers, not a recommendation; in back-tests the verdicts did not predict next-year returns. Not investment advice.*
+*The live chat answering "Is Nvidia overvalued for its quality?"; the Outputs panel shows the
+`get_valuation_check` tool call behind the answer.*
 
 **What the number check cannot catch.** It verifies that each figure exists in the tool output, not
 that it is described correctly. Reviewing the answers by hand found three such slips in earlier runs,
@@ -325,83 +326,13 @@ Additional fundamental tests produced varied outcomes across the sample. The Pio
 
 Finally, textual analysis of management tone demonstrated divergent relationships with growth and performance metrics. Management tone showed a correlation with same-year revenue growth of r = 0.32, but exhibited virtually no correlation with next 12-month excess returns, recording an r of -0.01. The data suggests that fundamental metrics relate to operational results and baseline valuations, but do not reliably track subsequent excess returns in this sample. Not investment advice.
 
+### Example company notes (FY2024)
 
-### Company notes
+- **DXC (Undervalued):** For fiscal year 2024, DXC carries an undervalued verdict as it trades at 1.1x EV/Sales versus 3.5x expected for its quality compared to Software & Services peers on a fair-value line fitted only on earlier years. Its strongest pillar is earnings quality at 55.2, while its weakest pillar is profitability at 38.0. The DCF upside in percent is 265.6%, and the DCF supports the verdict.
+- **DELL (Undervalued):** For fiscal year 2024, the data suggests DELL is undervalued in the Hardware & Equipment sub-industry as it trades at 1.2x sales versus 2.0x expected for its quality. Its strongest pillar score is safety at 77.3, while its weakest pillar score is profitability at 28.1. The DCF upside in percent is -40.7, and the DCF does not support the verdict.
+- **NVDA (Overvalued):** For fiscal year 2024, the verdict on NVDA in Semiconductors is Overvalued because it trades at an actual EV/Sales multiple of 17.9x versus an expected EV/Sales multiple of 4.1x for its quality. Its strongest pillar is growth at 100.0, while its weakest pillar is earnings quality at 57.3. The DCF upside is -40.6%, and the DCF supports the verdict, as the data suggests.
 
-
-**DXC FY2024** (Undervalued): For fiscal year 2024, DXC carries an undervalued verdict as it trades at 1.1x EV/Sales versus 3.5x expected for its quality compared to Software & Services peers on a fair-value line fitted only on earlier years. Its strongest pillar is earnings quality at 55.2, while its weakest pillar is profitability at 38.0. The DCF upside in percent is 265.6%, and the DCF supports the verdict. Not investment advice.
-
-
-**CTSH FY2024** (Undervalued): For the fiscal year 2024, the data suggests CTSH carries a verdict of Undervalued as it trades at 1.9x EV/Sales versus 4.0x expected for its quality, compared with Software & Services peers on a fair-value line fitted only on earlier years. Its strongest pillar is safety at 61.3, while its weakest pillar is earnings quality at 36.0. The DCF upside is -41.5%, and the DCF does not support the verdict.
-
-Not investment advice.
-
-
-**CDW FY2024** (Undervalued): The data suggests CDW with a fiscal year 2024 verdict of Undervalued trades at 1.8x sales versus 3.3x expected. Its strongest pillar is growth at 47.1, while its weakest pillar is earnings quality at 37.2. The DCF upside is -70.7% and the DCF does not support the verdict. Not investment advice.
-
-
-**DELL FY2024** (Undervalued): For fiscal year 2024, the data suggests DELL is undervalued in the Hardware & Equipment sub-industry as it trades at 1.2x sales versus 2.0x expected for its quality. Its strongest pillar score is safety at 77.3, while its weakest pillar score is profitability at 28.1. The DCF upside in percent is -40.7, and the DCF does not support the verdict. Not investment advice.
-
-
-**HPQ FY2024** (Undervalued): The data suggests that HPQ for fiscal year 2024 is undervalued, as it trades at 1.1x sales versus 1.7x expected for its quality within the Hardware & Equipment sub-industry. Its strongest pillar is safety at 66.0, while its weakest pillar is profitability at 30.0. Furthermore, the DCF upside is -12.7%, and the DCF does not support the verdict. Not investment advice.
-
-
-**JBL FY2024** (Undervalued): The data suggests JBL, in the Hardware & Equipment sub-industry for fiscal year 2024, has a verdict of Undervalued because it trades at an actual EV/Sales multiple of 1.1x versus an expected EV/Sales multiple of 1.6x for its quality. Its strongest pillar is profitability at 56.8, while its weakest pillar is earnings quality at 36.6. The DCF upside in percent is 114.4, and the DCF supports the verdict.
-
-Not investment advice.
-
-
-**ACN FY2024** (Undervalued): For fiscal year 2024, ACN receives an Undervalued verdict because it trades at 3.5x sales versus 5.1x expected for its quality compared with Software & Services peers. Within its pillar scores out of 100, safety is its strongest at 74.9 while earnings quality is its weakest at 46.8. Finally, the DCF upside in percent stands at -47.7%, meaning the DCF does not support the verdict. Not investment advice.
-
-
-**HPE FY2024** (Undervalued): For the fiscal year 2024, HPE in the Hardware & Equipment sub-industry is deemed Undervalued as it trades at 1.2x sales versus 1.6x expected for its quality. Its strongest pillar score is growth at 49.3 out of 100, while its weakest is earnings quality at 40.2 out of 100. The data suggests a DCF upside in percent of 58.1, and the DCF supports the verdict. Not investment advice.
-
-
-**APH FY2024** (Undervalued): For the fiscal year 2024, APH is deemed undervalued because it trades at an actual EV/Sales multiple of 1.9x versus an expected EV/Sales multiple of 2.6x for its quality within the Hardware & Equipment sub-industry. The data shows that its strongest pillar is profitability at 57.4, while its weakest pillar is earnings quality at 44.3. Furthermore, the DCF upside in percent is 45.0, and the DCF supports the verdict.
-
-Not investment advice.
-
-
-**AKAM FY2024** (Undervalued): For the 2024 fiscal year, AKAM trades at an actual EV/Sales multiple of 3.8x versus an expected EV/Sales multiple of 4.8x for its quality, leading to a verdict of Undervalued. Its strongest pillar is earnings quality at 70.6, while its weakest pillar is profitability at 46.4. The data suggests a DCF upside in percent of 24.3, and the DCF supports the verdict.
-
-Not investment advice.
-
-
-**AVGO FY2024** (Overvalued): The data suggests the company is overvalued, trading at an actual EV/Sales multiple of 17.9x versus an expected EV/Sales multiple of 3.6x for its quality. Its strongest pillar is earnings quality at 74.8, while its weakest pillar is safety at 47.4. Furthermore, the DCF upside in percent is -61.9%, and the DCF supports the verdict. Not investment advice.
-
-
-**MPWR FY2024** (Overvalued): For fiscal year 2024, MPWR in the Semiconductors sub-industry receives a verdict of Overvalued as it trades at 15.5x actual EV/Sales versus 3.5x expected EV/Sales for its quality. Its strongest pillar score out of 100 is profitability at 88.1, while its weakest pillar score out of 100 is earnings quality at 5.2. The DCF upside is -31.0%, and the DCF supports the verdict. Not investment advice.
-
-
-**NVDA FY2024** (Overvalued): For fiscal year 2024, the verdict on NVDA in Semiconductors is Overvalued because it trades at an actual EV/Sales multiple of 17.9x versus an expected EV/Sales multiple of 4.1x for its quality. Its strongest pillar is growth at 100.0, while its weakest pillar is earnings quality at 57.3. The DCF upside is -40.6%, and the DCF supports the verdict, as the data suggests. Not investment advice.
-
-
-**VRSN FY2024** (Overvalued): For fiscal year 2024, the data suggests VRSN is overvalued as it trades at 12.1x sales versus 2.9x expected for its quality compared to Software & Services peers. Within its pillar scores out of 100, safety stands out at 39.1, while profitability, growth, and earnings quality have no data available. Furthermore, the DCF upside in percent is -21.2, and the DCF supports the verdict. Not investment advice.
-
-
-**ADI FY2024** (Overvalued): For the fiscal year 2024, ADI is assessed as Overvalued because it trades at an actual EV/Sales multiple of 12.1x versus an expected EV/Sales multiple of 3.5x for its quality. Within its pillar scores out of 100, its strongest pillar is earnings quality at 63.6 and its weakest pillar is growth at 39.2. Furthermore, the DCF upside in percent is -71.5%, and the DCF supports the verdict.
-
-Not investment advice.
-
-
-**WDC FY2024** (Overvalued): WDC receives a verdict of Overvalued, trading at an Actual EV/Sales multiple of 3.4 compared to an Expected EV/Sales multiple for its quality of 1.0. Among its pillar scores out of 100, its growth score is the strongest at 46.9 while its profitability score is the weakest at 25.0. The DCF upside in percent is -225.6, and the DCF does support the verdict.
-
-Not investment advice.
-
-
-**CDNS FY2024** (Overvalued): CDNS has a verdict of Overvalued, trading at an actual EV/Sales multiple of 17.1x versus an expected EV/Sales multiple of 5.6x for its quality. Within its pillar scores out of 100, the strongest pillar is profitability at 65.9 and the weakest pillar is growth at 52.0. The DCF upside in percent is -77.4, and the DCF supports the verdict with a "yes".
-
-Not investment advice.
-
-
-**AMD FY2024** (Overvalued): The data suggests that AMD, classified under Semiconductors, is overvalued because it trades at an actual EV/Sales multiple of 10.5x versus an expected EV/Sales multiple of 3.5x for its quality. Its strongest pillar score is safety at 58.5, while its weakest pillar score is profitability at 39.2. Furthermore, the DCF upside is -88.7%, and the DCF does support the verdict. Not investment advice.
-
-
-**KLAC FY2024** (Fairly valued): For fiscal year 2024, KLAC carries a verdict of Fairly valued because it trades at 10.2x sales versus 3.6x expected for its quality. Its strongest pillar is profitability at 70.6, while its weakest pillar is growth at 45.2. The DCF upside in percent is -59.3%, and the DCF does the DCF support the verdict with no clear signal. Not investment advice.
-
-
-**FICO FY2024** (Fairly valued): The data suggests FICO trades at 17.9x sales versus 6.4x expected, resulting in a verdict of Fairly valued compared with Software & Services peers on a fair-value line fitted only on earlier years. Its strongest pillar is earnings quality at 70.8, while its weakest pillar is growth at 52.4. Furthermore, the DCF upside is -77.6% and does the DCF support the verdict indicates no clear signal. Not investment advice.
-
+*All 20 notes are in `analysis/outputs/ai_commentary.md`.*
 
 ## Limitations
 

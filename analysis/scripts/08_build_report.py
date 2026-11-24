@@ -2,6 +2,7 @@
 Every number in the interpretation text is read from a table -- nothing is typed in by hand."""
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -17,9 +18,103 @@ def _t(name: str) -> pd.DataFrame:
     return pd.read_csv(TABLES_DIR / f"{name}.csv")
 
 
+def _pct(v):  # fraction -> signed percent
+    return f"{v * 100:+.1f}%"
+
+
+def _pp(v):  # value already in percent units
+    return f"{v:.1f}%"
+
+
+def _pv(v):
+    return "<0.001" if v < 0.001 else f"{v:.3f}"
+
+
+def _f(k):
+    return lambda v: f"{v:.{k}f}"
+
+
+def _mx(v):
+    return f"{v:.1f}x"
+
+
+def _prep_6b(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    is_ret = df["outcome"] == "excess_return_next_12m"
+    for col in ("mean_weak", "mean_strong"):
+        df[col] = [(_pct(v) if r else _pp(v)) for v, r in zip(df[col], is_ret)]
+    return df
+
+
+# Report tables: readable headers and rounded numbers (the CSVs keep full precision).
+_SPECS = {
+    "Table10_Sample_Attrition": ({"stage": "Stage", "n": "Company-years"}, {}, None),
+    "Table3_Regression_Summary": ({"model": "Model", "slope_on_QualityScore": "Slope on Quality Score",
+                                   "p_value": "p-value", "r_squared": "R²", "n": "N"},
+                                  {"slope_on_QualityScore": _f(4), "p_value": _pv, "r_squared": _f(3)}, None),
+    "Table4_Undervalued": None, "Table5_Overvalued": None,  # filled below (same layout)
+    "Table5b_Verdict_Outcomes": ({"outcome": "Outcome", "n_under": "n undervalued", "mean_under": "Mean, undervalued",
+                                  "n_over": "n overvalued", "mean_over": "Mean, overvalued",
+                                  "difference": "Difference", "t_pvalue": "t-test p", "u_pvalue": "Mann-Whitney p"},
+                                 {"mean_under": _pct, "mean_over": _pct, "difference": _pct,
+                                  "t_pvalue": _pv, "u_pvalue": _pv},
+                                 lambda d: d.assign(outcome=d.outcome.map({
+                                     "excess_return_next_12m": "Next-12m return vs XLK",
+                                     "return_next_12m": "Next-12m raw return"}))),
+    "Table6_Score_Group_Outcomes": ({"score": "Score", "group": "Group", "n": "N",
+                                     "rev_growth_next_mean": "Next-year revenue growth",
+                                     "excess_return_next_12m_mean": "Next-12m return vs XLK",
+                                     "loss_next_mean": "Loss next year"},
+                                    {"rev_growth_next_mean": _pp, "excess_return_next_12m_mean": _pct,
+                                     "loss_next_mean": lambda v: f"{v * 100:.0f}%"},
+                                    lambda d: d.assign(score=d.score.map(lambda s: LABELS.get(s, s)))),
+    "Table6b_Score_Group_Tests": ({"score": "Score", "outcome": "Outcome", "n_weak": "n weak",
+                                   "n_strong": "n strong", "mean_weak": "Mean, weak", "mean_strong": "Mean, strong",
+                                   "t_pvalue": "t-test p", "u_pvalue": "Mann-Whitney p"},
+                                  {"t_pvalue": _pv, "u_pvalue": _pv},
+                                  lambda d: _prep_6b(d).assign(score=d.score.map(lambda s: LABELS.get(s, s)),
+                                                               outcome=d.outcome.map(lambda s: LABELS.get(s, s)))),
+    "Table7_Tone_Correlations": ({"x": "Tone measure", "y": "Compared with", "n": "N",
+                                  "pearson_r": "Pearson r", "p_value": "p-value"},
+                                 {"pearson_r": _f(2), "p_value": _pv},
+                                 lambda d: d.assign(x=d.x.map({"mda_polarity": "MD&A tone",
+                                                               "polarity_change (YoY)": "YoY change in tone"}),
+                                                    y=d.y.str.replace(" (YoY)", "", regex=False))),
+    "Table8_Tone_Mismatches": ({"ticker": "Ticker", "fy": "FY", "mda_polarity": "MD&A tone",
+                                "revenue_growth_pct": "Revenue growth", "rev_growth_next": "Next-year revenue growth"},
+                               {"mda_polarity": _f(2), "revenue_growth_pct": _pp, "rev_growth_next": _pp}, None),
+    "Table9_Sub_Industry_Analysis": ({"sub_industry": "Sub-industry", "n_company_years": "Company-years",
+                                      "avg_quality_score": "Avg Quality Score", "avg_ev_sales": "Avg EV/Sales",
+                                      "avg_excess_return_next_12m": "Avg next-12m return vs XLK",
+                                      "quality_valuation_corr": "Quality-valuation r"},
+                                     {"avg_quality_score": _f(1), "avg_ev_sales": _mx,
+                                      "avg_excess_return_next_12m": _pct, "quality_valuation_corr": _f(2)}, None),
+}
+_VERDICT_TABLE = ({"ticker": "Ticker", "sub_industry": "Sub-industry", "QualityScore": "Quality",
+                   "ev_sales": "EV/Sales", "expected_ev_sales": "Expected EV/Sales", "gap_z": "Gap z",
+                   "verdict": "Verdict", "dcf_upside": "DCF upside", "dcf_agreement": "DCF"},
+                  {"QualityScore": _f(1), "ev_sales": _mx, "expected_ev_sales": _mx, "gap_z": _f(2),
+                   "dcf_upside": _pct}, None)
+_SPECS["Table4_Undervalued"] = _SPECS["Table5_Overvalued"] = _VERDICT_TABLE
+
+
 def _md(name: str) -> str:
-    path = TABLES_DIR / f"{name}.md"
-    return path.read_text(encoding="utf-8") if path.exists() else f"_{name} not found_"
+    if name == "Table0_Database_Inventory":
+        return ""  # internal database inventory: not useful to a reader
+    spec = _SPECS.get(name)
+    if spec is None:
+        path = TABLES_DIR / f"{name}.md"
+        return path.read_text(encoding="utf-8") if path.exists() else f"_{name} not found_"
+    cols, fmts, prep = spec
+    df = _t(name)
+    if prep:
+        df = prep(df)
+    df = df[list(cols)].copy()
+    for col, fn in fmts.items():
+        df[col] = [fn(v) if isinstance(v, (int, float)) and pd.notna(v) else (v if isinstance(v, str) else "n/a")
+                   for v in df[col]]
+    df = df.fillna("n/a")
+    return df.rename(columns=cols).to_markdown(index=False)
 
 
 def _md_df(df: pd.DataFrame) -> str:
@@ -35,6 +130,7 @@ LABELS = {
     "piotroski_f": "Piotroski F", "altman_z": "Altman Z", "beneish_m": "Beneish M",
     "rev_growth_next": "next-year revenue growth",
     "excess_return_next_12m": "next-12-month excess return",
+    "return_next_12m": "next-12-month raw return",
 }
 
 
@@ -57,6 +153,15 @@ def main():
 
     ai_text = sanitize_markdown((OUTPUTS_DIR / "ai_commentary.md").read_text(encoding="utf-8"))
     ai_text = ai_text.replace("# AI-Generated Key Findings", "### Key findings").replace("## Company Notes", "### Company notes")
+    # Keep four example notes (two each side); all 20 stay in outputs/ai_commentary.md.
+    summary_part, _, notes_part = ai_text.partition("### Company notes")
+    notes = re.findall(r"\*\*([A-Z]+) FY\d{4}\*\* \(([^)]+)\): (.*?)(?=\n\s*\*\*[A-Z]+ FY|\Z)", notes_part, re.S)
+    keep = [n for n in notes if n[0] in ("DXC", "DELL", "NVDA")]
+    notes_md = "\n".join(
+        f"- **{t} ({v}):** " + re.sub(r"\s*Not investment advice\.?\s*", " ", body).strip()
+        for t, v, body in keep)
+    ai_text = (summary_part.strip() + "\n\n### Example company notes (FY2024)\n\n" + notes_md
+               + "\n\n*All 20 notes are in `analysis/outputs/ai_commentary.md`.*")
     n_gemini = int((ai_log["model"] != "offline_template").sum())
     n_rejected = int(ai_log.get("gemini_attempts_rejected", pd.Series([0])).sum())
     models = sorted(m for m in ai_log["model"].unique() if m != "offline_template")
@@ -124,6 +229,31 @@ def main():
     md = f"""# Mispricing Radar: Does the Stock Market Pay for Fundamental Quality?
 
 *{n_companies} US technology companies, FY{fy0}-FY{fy1} ({n_rows} company-years), built on SEC 10-K filings.*
+
+## Executive summary
+
+**The market pays for fundamental quality, but only a little, and a "cheap for its quality" signal
+does not predict returns.** A 0-100 Fundamental Quality Score built from SEC 10-K fundamentals
+correlates with valuation at r={r_all:.2f} and explains {simple.r_squared * 100:.1f}% of the spread in
+EV/Sales. Tested out of sample -- each company judged against its own sub-industry, with a fair-value
+line fitted only on earlier years, and returns measured against the XLK tech ETF -- "undervalued"
+companies did not beat "overvalued" ones. The classic risk scores do not predict excess returns, and
+management tone describes the past rather than the future. Every number is computed by deterministic
+code; the AI layer (Gemini) only narrates verified outputs, and each of its figures is checked
+against the data before publication.
+
+| Question | Hypothesis | Result | Verdict |
+| --- | --- | --- | --- |
+| RQ1 Quality vs valuation | Higher quality, higher multiple | r={r_all:.2f}; quality explains {simple.r_squared * 100:.1f}% (p<0.001) | Supported, but weak |
+| RQ2 Mispricing | "Undervalued" beats "overvalued" next year | {ex.mean_under * 100:.1f}% vs {ex.mean_over * 100:+.1f}% vs XLK ({_p(ex.t_pvalue)}) | Not supported |
+| RQ3 Risk scores | Strong scores beat weak scores | No excess-return edge; Altman flags weaker growth ({_p(alt_rev.t_pvalue)}) | Mostly not supported |
+| RQ4 Management tone | Upbeat tone, better results | Same year r={tone_same.pearson_r:.2f}; next year r={tone_ret.pearson_r:.2f} | Describes the past only |
+| RQ5 Sub-industries | Valuation logic differs by sector | Quality-valuation link r={sub_ind['quality_valuation_corr'].min():.2f} to {sub_ind['quality_valuation_corr'].max():.2f} | Supported |
+
+{_fig("Screenshot_Radar_Chart")}
+
+*The Mispricing Radar page in the FinChat app: each company's quality vs valuation, judged against its
+own sub-industry's line, with leaderboards and a back-test caveat.*
 
 ## Research questions
 
@@ -306,7 +436,10 @@ answers without ever doing the maths itself.
 
 {_md_df(chat_log)}
 
-{chat_q1}
+{_fig("Screenshot_Chat_Answer_Crop")}
+
+*The live chat answering "Is Nvidia overvalued for its quality?"; the Outputs panel shows the
+`get_valuation_check` tool call behind the answer.*
 
 **What the number check cannot catch.** It verifies that each figure exists in the tool output, not
 that it is described correctly. Reviewing the answers by hand found three such slips in earlier runs,

@@ -1,0 +1,1175 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Mispricing Radar: Does the Stock Market Pay for Fundamental Quality?</title><style>
+@page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #1f2328; font-size: 10.5pt;
+       line-height: 1.5; margin: 0; }
+h1 { font-size: 22pt; margin: 0 0 4mm; color: #14213d; }
+h2 { font-size: 15pt; color: #14213d; border-bottom: 2px solid #cc785c; padding-bottom: 2mm;
+     margin: 9mm 0 4mm; break-after: avoid; }
+h2.page, h3.page { break-before: page; }
+h2.page { margin-top: 0; }
+h3 { font-size: 12.5pt; color: #14213d; margin: 7mm 0 3mm; break-after: avoid; }
+p, li { orphans: 3; widows: 3; }
+strong { color: #111; }
+code { font-family: Consolas, monospace; font-size: 9pt; background: #f2f2f0; padding: 0 3px; border-radius: 3px; }
+blockquote { margin: 4mm 0; padding: 3mm 5mm; background: #faf6f3; border-left: 3px solid #cc785c;
+             color: #333; break-inside: avoid; }
+table { border-collapse: collapse; width: 100%; margin: 3mm 0 5mm; font-size: 8.6pt; break-inside: avoid; }
+th { background: #14213d; color: #fff; text-align: left; padding: 1.6mm 2mm; font-weight: 600; }
+td { padding: 1.4mm 2mm; border-bottom: 1px solid #e3e3e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f7f7f5; }
+img { display: block; max-width: 100%; max-height: 118mm; margin: 4mm auto 2mm; break-inside: avoid; }
+p:has(> img) { break-inside: avoid; text-align: center; }
+em { color: #555; }
+.cover { height: 255mm; display: flex; flex-direction: column; justify-content: center; break-after: page; }
+.cover .kicker { color: #cc785c; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: 10pt; }
+.cover h1 { font-size: 30pt; line-height: 1.15; margin: 4mm 0 6mm; }
+.cover .sub { font-size: 13pt; color: #444; max-width: 150mm; }
+.cover .facts { margin-top: 14mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; max-width: 165mm; }
+.cover .fact { border-top: 3px solid #cc785c; padding-top: 2mm; }
+.cover .fact b { display: block; font-size: 17pt; color: #14213d; }
+.cover .fact span { font-size: 9pt; color: #555; }
+.cover .meta { margin-top: 18mm; font-size: 9.5pt; color: #666; }
+</style></head><body>
+<section class="cover">
+  <div class="kicker">FinChat &middot; Equity Research Copilot</div>
+  <h1>Mispricing Radar: Does the Stock Market Pay for Fundamental Quality?</h1>
+  <div class="sub">A point-in-time study of fundamental quality versus market valuation in US technology
+  stocks, built from SEC 10-K filings, with an AI analyst layer whose every number is verified.</div>
+  <div class="facts">
+    <div class="fact"><b>57</b><span>companies, S&amp;P 500 tech</span></div>
+    <div class="fact"><b>399</b><span>company-years, FY2018-2024</span></div>
+    <div class="fact"><b>12</b><span>figures &middot; 5 research questions</span></div>
+  </div>
+  <div class="meta">57 US technology companies, FY2018-FY2024 (399 company-years), built on SEC 10-K filings.<br>November 2026</div>
+</section><h2>Executive summary</h2>
+<p><strong>The market pays for fundamental quality, but only a little, and a "cheap for its quality" signal
+does not predict returns.</strong> A 0-100 Fundamental Quality Score built from SEC 10-K fundamentals
+correlates with valuation at r=0.37 and explains 14.1% of the spread in
+EV/Sales. Tested out of sample -- each company judged against its own sub-industry, with a fair-value
+line fitted only on earlier years, and returns measured against the XLK tech ETF -- "undervalued"
+companies did not beat "overvalued" ones. The classic risk scores do not predict excess returns, and
+management tone describes the past rather than the future. Every number is computed by deterministic
+code; the AI layer (Gemini) only narrates verified outputs, and each of its figures is checked
+against the data before publication.</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Hypothesis</th>
+<th>Result</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RQ1 Quality vs valuation</td>
+<td>Higher quality, higher multiple</td>
+<td>r=0.37; quality explains 14.1% (p&lt;0.001)</td>
+<td>Supported, but weak</td>
+</tr>
+<tr>
+<td>RQ2 Mispricing</td>
+<td>"Undervalued" beats "overvalued" next year</td>
+<td>-3.0% vs +1.1% vs XLK (p=0.642)</td>
+<td>Not supported</td>
+</tr>
+<tr>
+<td>RQ3 Risk scores</td>
+<td>Strong scores beat weak scores</td>
+<td>No excess-return edge; Altman flags weaker growth (p=0.006)</td>
+<td>Mostly not supported</td>
+</tr>
+<tr>
+<td>RQ4 Management tone</td>
+<td>Upbeat tone, better results</td>
+<td>Same year r=0.32; next year r=-0.01</td>
+<td>Describes the past only</td>
+</tr>
+<tr>
+<td>RQ5 Sub-industries</td>
+<td>Valuation logic differs by sector</td>
+<td>Quality-valuation link r=0.07 to 0.50</td>
+<td>Supported</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Screenshot_Radar_Chart" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Screenshot_Radar_Chart.png" /></p>
+<p><em>The Mispricing Radar page in the FinChat app: each company's quality vs valuation, judged against its
+own sub-industry's line, with leaderboards and a back-test caveat.</em></p>
+<h2>Research questions</h2>
+<ul>
+<li><strong>RQ1.</strong> Do higher-quality companies trade at higher valuation multiples, and how much of valuation does quality explain?</li>
+<li><strong>RQ2.</strong> Which companies look undervalued or overvalued for their quality, does a DCF agree, and did the verdicts predict returns?</li>
+<li><strong>RQ3.</strong> Did companies with better Piotroski F, Altman Z or Beneish M scores have better next-year growth and returns?</li>
+<li><strong>RQ4.</strong> Does MD&amp;A sentiment match actual performance, in the same year and the next?</li>
+<li><strong>RQ5.</strong> Do semiconductors, software and hardware differ in quality, valuation and the link between them?</li>
+</ul>
+<h2>Data and sample</h2>
+<ul>
+<li><strong>Companies:</strong> 57 -- the 19-ticker FinChat universe plus 38 S&amp;P 500 Information Technology
+  constituents with a full FY2018-2024 10-K history. ANSYS and Juniper Networks were dropped: both were
+  acquired and no longer appear in SEC's active ticker map (a survivorship bias -- see Limitations).</li>
+<li><strong>Sources:</strong> SEC EDGAR XBRL company facts (statements, ratios, Piotroski and Beneish scores), SEC 10-K
+  MD&amp;A text (sentiment), Yahoo Finance via yfinance (daily adjusted closes for each company and for the
+  XLK Technology Select Sector ETF, cached locally).</li>
+</ul>
+<p><strong>Sample attrition.</strong> Every stage below loses company-years for a stated reason:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Stage</th>
+<th style="text-align: right;">Company-years</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Company-years collected (57 x 7)</td>
+<td style="text-align: right;">399</td>
+</tr>
+<tr>
+<td style="text-align: left;">With a Quality Score</td>
+<td style="text-align: right;">396</td>
+</tr>
+<tr>
+<td style="text-align: left;">With EV/Sales (needs price + diluted shares)</td>
+<td style="text-align: right;">386</td>
+</tr>
+<tr>
+<td style="text-align: left;">RQ1 simple regression (Quality + EV/Sales)</td>
+<td style="text-align: right;">383</td>
+</tr>
+<tr>
+<td style="text-align: left;">RQ1 controlled regression (+ revenue growth, needs prior year)</td>
+<td style="text-align: right;">330</td>
+</tr>
+<tr>
+<td style="text-align: left;">With a walk-forward verdict (FY2019+; FY2018 has no training data)</td>
+<td style="text-align: right;">332</td>
+</tr>
+<tr>
+<td style="text-align: left;">With a next-12m excess return</td>
+<td style="text-align: right;">397</td>
+</tr>
+<tr>
+<td style="text-align: left;">With Piotroski F</td>
+<td style="text-align: right;">342</td>
+</tr>
+<tr>
+<td style="text-align: left;">With Altman Z (point-in-time)</td>
+<td style="text-align: right;">375</td>
+</tr>
+<tr>
+<td style="text-align: left;">With Beneish M</td>
+<td style="text-align: right;">157</td>
+</tr>
+</tbody>
+</table>
+<h2>Method</h2>
+<ul>
+<li><strong>Quality Score (0-100)</strong> from raw fundamentals only, in four pillars: Profitability (ROE, ROIC,
+  operating margin, net margin), Growth (revenue and net-income growth), Safety (current ratio,
+  debt/equity, interest coverage) and Earnings Quality (FCF margin, accruals). Each metric is z-scored
+  within its fiscal year (sign-flipped where lower is better), averaged into pillars (a pillar needs at
+  least 2 of its metrics), averaged into one score and rescaled to 0-100. Altman Z, Piotroski F and
+  Beneish M are <strong>not</strong> inputs: they are composites of the same ratios, and Altman Z contains market
+  capitalisation, which would place market valuation inside a score that is regressed on valuation.
+  The three scores are tested separately in RQ3.</li>
+<li><strong>Valuation:</strong> EV/Sales (defined even at a loss), log-transformed for regression; P/E is missing when
+  EPS &lt;= 0. EV/Sales, log EV/Sales, P/E, ROE, ROIC and debt/equity are winsorized at the 5th/95th
+  percentile within each fiscal year.</li>
+<li><strong>Point-in-time prices:</strong> the close on the first trading day on or after each 10-K filing date (at
+  most 7 calendar days later) sets market cap and EV; next-12-month returns run from that day.
+  <strong>Altman Z is recomputed from that point-in-time market cap.</strong> The pre-existing <code>scores</code> table reused
+  each company's <em>current</em> market cap for every historical year (NVDA's FY2018 Altman Z was 486), which
+  this study does not use.</li>
+<li><strong>Returns are benchmark-adjusted:</strong> each stock's 12-month total return minus XLK's total return over
+  the same two trading days.</li>
+<li><strong>RQ1 regressions are descriptive and in-sample:</strong> simple OLS of log(EV/Sales) on Quality Score, and
+  a controlled OLS adding revenue growth, fiscal-year and sub-industry fixed effects, with standard
+  errors clustered by ticker.</li>
+<li><strong>RQ2 verdicts are walk-forward and sub-industry-relative:</strong> for fiscal year <em>t</em>, each sub-industry's
+  fair-value line is fitted only on that sub-industry's company-years from years before <em>t</em>. A
+  company's gap is its actual minus expected log(EV/Sales); gaps are standardised across all companies
+  within year <em>t</em>, and z &lt;= -1 is "Undervalued", z &gt;= +1 "Overvalued". FY2018 has no earlier data, so
+  verdicts start in FY2019.</li>
+<li><strong>DCF:</strong> <code>finchat/engine/dcf.py</code> with default assumptions (9% WACC, 2.5% terminal growth, 5 years),
+  run as of each historical fiscal year via a backward-compatible <code>as_of_fy</code> parameter.</li>
+<li><strong>Grouped tests (RQ3):</strong> strong vs weak groups -- Piotroski 7-9 vs 0-3, Altman safe (&gt;3.0) vs
+  distress (&lt;1.81), Beneish not flagged vs flagged (&gt; -1.78) -- compared with Welch's t-test and the
+  Mann-Whitney U test.</li>
+</ul>
+<h2 class="page">Results</h2>
+<h3>RQ1 -- Quality vs valuation</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Model</th>
+<th style="text-align: right;">Slope on Quality Score</th>
+<th style="text-align: left;">p-value</th>
+<th style="text-align: right;">R²</th>
+<th style="text-align: right;">N</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Simple (QualityScore only)</td>
+<td style="text-align: right;">0.026</td>
+<td style="text-align: left;">&lt;0.001</td>
+<td style="text-align: right;">0.141</td>
+<td style="text-align: right;">383</td>
+</tr>
+<tr>
+<td style="text-align: left;">With controls (revenue growth, year FE, sub-industry FE; clustered SE)</td>
+<td style="text-align: right;">0.0222</td>
+<td style="text-align: left;">0.003</td>
+<td style="text-align: right;">0.323</td>
+<td style="text-align: right;">330</td>
+</tr>
+</tbody>
+</table>
+<p>Quality and valuation are positively correlated (Pearson r=0.37, p&lt;0.001, N=383). On its
+own the Quality Score explains 14.1% of the variation in log(EV/Sales). Adding
+revenue growth, year and sub-industry effects raises R² to 32.3% and the sample falls
+from 383 to 330 company-years (revenue growth needs a prior year); the quality
+coefficient stays significant (p=0.003). Most of the added explanatory power comes from the year
+and sub-industry effects -- tech multiples rose sharply into FY2023-2024 for every quality level, and
+software trades richer than hardware at the same quality -- not from quality itself. The yearly
+correlation rises from r=0.18 in FY2018 to
+r=0.54 in FY2024.</p>
+<p><img alt="Figure1_Quality_vs_Valuation" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure1_Quality_vs_Valuation.png" /></p>
+<p><img alt="Figure2_Correlation_Heatmap" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure2_Correlation_Heatmap.png" /></p>
+<p><img alt="Figure3_Top_Quality_Scores" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure3_Top_Quality_Scores.png" /></p>
+<p><img alt="Figure4_Top_EV_Sales" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure4_Top_EV_Sales.png" /></p>
+<h3 class="page">RQ2 -- Mispricing, and whether it predicted anything</h3>
+<p>FY2024 companies with the lowest and highest gap z-scores (each judged against its own sub-industry's
+line, trained on FY2018-FY2023):</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: left;">Sub-industry</th>
+<th style="text-align: right;">Quality</th>
+<th style="text-align: left;">EV/Sales</th>
+<th style="text-align: left;">Expected EV/Sales</th>
+<th style="text-align: right;">Gap z</th>
+<th style="text-align: left;">Verdict</th>
+<th style="text-align: left;">DCF upside</th>
+<th style="text-align: left;">DCF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">DXC</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">31.4</td>
+<td style="text-align: left;">1.1x</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: right;">-2.75</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+265.6%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">CTSH</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">37.4</td>
+<td style="text-align: left;">1.9x</td>
+<td style="text-align: left;">4.0x</td>
+<td style="text-align: right;">-2.01</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-41.5%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">CDW</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">28.6</td>
+<td style="text-align: left;">1.8x</td>
+<td style="text-align: left;">3.3x</td>
+<td style="text-align: right;">-1.72</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-70.7%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">DELL</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">38.5</td>
+<td style="text-align: left;">1.2x</td>
+<td style="text-align: left;">2.0x</td>
+<td style="text-align: right;">-1.67</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-40.7%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">HPQ</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">33.5</td>
+<td style="text-align: left;">1.1x</td>
+<td style="text-align: left;">1.7x</td>
+<td style="text-align: right;">-1.56</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-12.7%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">JBL</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">31.1</td>
+<td style="text-align: left;">1.1x</td>
+<td style="text-align: left;">1.6x</td>
+<td style="text-align: right;">-1.43</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+114.4%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACN</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">47.7</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: left;">5.1x</td>
+<td style="text-align: right;">-1.37</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-47.7%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">HPE</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">31.5</td>
+<td style="text-align: left;">1.2x</td>
+<td style="text-align: left;">1.6x</td>
+<td style="text-align: right;">-1.24</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+58.1%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">APH</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">45.6</td>
+<td style="text-align: left;">1.9x</td>
+<td style="text-align: left;">2.6x</td>
+<td style="text-align: right;">-1.22</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+45.0%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">AKAM</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">44.8</td>
+<td style="text-align: left;">3.8x</td>
+<td style="text-align: left;">4.8x</td>
+<td style="text-align: right;">-1.13</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+24.3%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">EPAM</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">40.7</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: left;">4.4x</td>
+<td style="text-align: right;">-1.12</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-10.1%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">SWKS</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">58.9</td>
+<td style="text-align: left;">3.1x</td>
+<td style="text-align: left;">3.7x</td>
+<td style="text-align: right;">-1.03</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+353.5%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">GDDY</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">41.3</td>
+<td style="text-align: left;">4.5x</td>
+<td style="text-align: left;">4.4x</td>
+<td style="text-align: right;">-0.74</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">+85.6%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">CRM</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">66.2</td>
+<td style="text-align: left;">8.4x</td>
+<td style="text-align: left;">7.7x</td>
+<td style="text-align: right;">-0.61</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">+17.3%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">GLW</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">34.8</td>
+<td style="text-align: left;">2.0x</td>
+<td style="text-align: left;">1.8x</td>
+<td style="text-align: right;">-0.55</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">-15.2%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: left;">Sub-industry</th>
+<th style="text-align: right;">Quality</th>
+<th style="text-align: left;">EV/Sales</th>
+<th style="text-align: left;">Expected EV/Sales</th>
+<th style="text-align: right;">Gap z</th>
+<th style="text-align: left;">Verdict</th>
+<th style="text-align: left;">DCF upside</th>
+<th style="text-align: left;">DCF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">AVGO</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">54.8</td>
+<td style="text-align: left;">17.9x</td>
+<td style="text-align: left;">3.6x</td>
+<td style="text-align: right;">1.84</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-61.9%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">MPWR</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">44.4</td>
+<td style="text-align: left;">15.5x</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: right;">1.66</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-31.0%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">NVDA</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">100</td>
+<td style="text-align: left;">17.9x</td>
+<td style="text-align: left;">4.1x</td>
+<td style="text-align: right;">1.62</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-40.6%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">VRSN</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">22.1</td>
+<td style="text-align: left;">12.1x</td>
+<td style="text-align: left;">2.9x</td>
+<td style="text-align: right;">1.58</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-21.2%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">ADI</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">39</td>
+<td style="text-align: left;">12.1x</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: right;">1.27</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-71.5%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">WDC</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">18.6</td>
+<td style="text-align: left;">3.4x</td>
+<td style="text-align: left;">1.0x</td>
+<td style="text-align: right;">1.22</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-225.6%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">CDNS</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">52.1</td>
+<td style="text-align: left;">17.1x</td>
+<td style="text-align: left;">5.6x</td>
+<td style="text-align: right;">1.06</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-77.4%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">AMD</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">38.5</td>
+<td style="text-align: left;">10.5x</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: right;">1.05</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-88.7%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">KLAC</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">48.4</td>
+<td style="text-align: left;">10.2x</td>
+<td style="text-align: left;">3.6x</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">-59.3%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">FICO</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">57.7</td>
+<td style="text-align: left;">17.9x</td>
+<td style="text-align: left;">6.4x</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">-77.6%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">KEYS</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">39.9</td>
+<td style="text-align: left;">5.8x</td>
+<td style="text-align: left;">2.1x</td>
+<td style="text-align: right;">0.89</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">-61.8%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">TXN</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">48.2</td>
+<td style="text-align: left;">9.7x</td>
+<td style="text-align: left;">3.6x</td>
+<td style="text-align: right;">0.88</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">-92.4%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">AAPL</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">53.2</td>
+<td style="text-align: left;">8.9x</td>
+<td style="text-align: left;">3.4x</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">-58.3%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">SNPS</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">45.8</td>
+<td style="text-align: left;">11.9x</td>
+<td style="text-align: left;">4.9x</td>
+<td style="text-align: right;">0.69</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">-75.8%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">MSI</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">43.2</td>
+<td style="text-align: left;">5.5x</td>
+<td style="text-align: left;">2.4x</td>
+<td style="text-align: right;">0.6</td>
+<td style="text-align: left;">Fairly valued</td>
+<td style="text-align: left;">-2.8%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+</tbody>
+</table>
+<p>In FY2024, 20 companies were flagged undervalued or overvalued; the DCF agreed with
+14 and disagreed with 6 (this count is for FY2024 only). 8 of 8 overvalued names also show DCF downside. 6 of 12 undervalued names (ACN, CDW, CTSH, DELL, EPAM, HPQ) show DCF downside instead: a low EV/Sales can reflect low margins rather than mispricing, which EV/Sales cannot see.</p>
+<p><strong>Did the verdicts predict returns?</strong> Out of sample, FY2019-FY2024 pooled:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Outcome</th>
+<th style="text-align: right;">n undervalued</th>
+<th style="text-align: left;">Mean, undervalued</th>
+<th style="text-align: right;">n overvalued</th>
+<th style="text-align: left;">Mean, overvalued</th>
+<th style="text-align: left;">Difference</th>
+<th style="text-align: right;">t-test p</th>
+<th style="text-align: right;">Mann-Whitney p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Next-12m return vs XLK</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: left;">-3.0%</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: left;">+1.1%</td>
+<td style="text-align: left;">-4.1%</td>
+<td style="text-align: right;">0.642</td>
+<td style="text-align: right;">0.815</td>
+</tr>
+<tr>
+<td style="text-align: left;">Next-12m raw return</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: left;">+22.1%</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: left;">+25.3%</td>
+<td style="text-align: left;">-3.2%</td>
+<td style="text-align: right;">0.739</td>
+<td style="text-align: right;">0.933</td>
+</tr>
+</tbody>
+</table>
+<p>Undervalued companies earned -3.0% in excess of XLK over the next 12 months versus
+1.1% for overvalued ones (n=64 vs 44; p=0.642, Mann-Whitney
+p=0.815). Raw returns tell the same story (p=0.739). <strong>The mispricing signal does not
+predict next-year returns.</strong> An earlier version of this study, which used one pooled line fitted on all
+years and all sub-industries, reported an apparent edge; it does not survive the corrected design
+(see Revisions).</p>
+<p><img alt="Figure12_Verdict_Outcomes" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure12_Verdict_Outcomes.png" /></p>
+<p><img alt="Figure5_Biggest_Bargains" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure5_Biggest_Bargains.png" /></p>
+<p><img alt="Figure6_Biggest_Premiums" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure6_Biggest_Premiums.png" /></p>
+<h3 class="page">RQ3 -- Do the risk scores predict anything?</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Score</th>
+<th style="text-align: left;">Group</th>
+<th style="text-align: right;">N</th>
+<th style="text-align: left;">Next-year revenue growth</th>
+<th style="text-align: left;">Next-12m return vs XLK</th>
+<th style="text-align: left;">Loss next year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Piotroski F</td>
+<td style="text-align: left;">low (0-3)</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: left;">8.0%</td>
+<td style="text-align: left;">-6.1%</td>
+<td style="text-align: left;">22%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Piotroski F</td>
+<td style="text-align: left;">mid (4-6)</td>
+<td style="text-align: right;">195</td>
+<td style="text-align: left;">12.1%</td>
+<td style="text-align: left;">-1.5%</td>
+<td style="text-align: left;">3%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Piotroski F</td>
+<td style="text-align: left;">high (7-9)</td>
+<td style="text-align: right;">121</td>
+<td style="text-align: left;">7.2%</td>
+<td style="text-align: left;">+1.3%</td>
+<td style="text-align: left;">5%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Altman Z</td>
+<td style="text-align: left;">distress (&lt;1.81)</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: left;">5.7%</td>
+<td style="text-align: left;">+0.6%</td>
+<td style="text-align: left;">32%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Altman Z</td>
+<td style="text-align: left;">grey (1.81-3.0)</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: left;">4.8%</td>
+<td style="text-align: left;">-1.8%</td>
+<td style="text-align: left;">5%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Altman Z</td>
+<td style="text-align: left;">safe (&gt;3.0)</td>
+<td style="text-align: right;">244</td>
+<td style="text-align: left;">11.6%</td>
+<td style="text-align: left;">+0.6%</td>
+<td style="text-align: left;">1%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Beneish M</td>
+<td style="text-align: left;">flagged (&gt;-1.78)</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: left;">20.0%</td>
+<td style="text-align: left;">+14.4%</td>
+<td style="text-align: left;">0%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Beneish M</td>
+<td style="text-align: left;">not flagged</td>
+<td style="text-align: right;">147</td>
+<td style="text-align: left;">8.3%</td>
+<td style="text-align: left;">+0.6%</td>
+<td style="text-align: left;">4%</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Score</th>
+<th style="text-align: left;">Outcome</th>
+<th style="text-align: right;">n weak</th>
+<th style="text-align: right;">n strong</th>
+<th style="text-align: left;">Mean, weak</th>
+<th style="text-align: left;">Mean, strong</th>
+<th style="text-align: right;">t-test p</th>
+<th style="text-align: right;">Mann-Whitney p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Piotroski F</td>
+<td style="text-align: left;">next-12-month excess return</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">120</td>
+<td style="text-align: left;">-6.1%</td>
+<td style="text-align: left;">+1.3%</td>
+<td style="text-align: right;">0.324</td>
+<td style="text-align: right;">0.622</td>
+</tr>
+<tr>
+<td style="text-align: left;">Piotroski F</td>
+<td style="text-align: left;">next-year revenue growth</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">101</td>
+<td style="text-align: left;">8.0%</td>
+<td style="text-align: left;">7.2%</td>
+<td style="text-align: right;">0.815</td>
+<td style="text-align: right;">0.824</td>
+</tr>
+<tr>
+<td style="text-align: left;">Altman Z</td>
+<td style="text-align: left;">next-12-month excess return</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">244</td>
+<td style="text-align: left;">+0.6%</td>
+<td style="text-align: left;">+0.6%</td>
+<td style="text-align: right;">0.999</td>
+<td style="text-align: right;">0.943</td>
+</tr>
+<tr>
+<td style="text-align: left;">Altman Z</td>
+<td style="text-align: left;">next-year revenue growth</td>
+<td style="text-align: right;">49</td>
+<td style="text-align: right;">204</td>
+<td style="text-align: left;">5.7%</td>
+<td style="text-align: left;">11.6%</td>
+<td style="text-align: right;">0.006</td>
+<td style="text-align: right;">0.02</td>
+</tr>
+<tr>
+<td style="text-align: left;">Beneish M</td>
+<td style="text-align: left;">next-12-month excess return</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">146</td>
+<td style="text-align: left;">+14.4%</td>
+<td style="text-align: left;">+0.6%</td>
+<td style="text-align: right;">0.263</td>
+<td style="text-align: right;">0.168</td>
+</tr>
+<tr>
+<td style="text-align: left;">Beneish M</td>
+<td style="text-align: left;">next-year revenue growth</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">123</td>
+<td style="text-align: left;">20.0%</td>
+<td style="text-align: left;">8.3%</td>
+<td style="text-align: right;">0.359</td>
+<td style="text-align: right;">0.568</td>
+</tr>
+</tbody>
+</table>
+<p>No score separates next-year <strong>excess returns</strong> (every p&gt;0.05 on both tests). The clearest result is Altman Z and next-year <strong>revenue growth</strong>: "safe" companies grew revenue
+11.6% on average versus 5.7% for "distress"
+companies (p=0.006, Mann-Whitney p=0.020). It is the only result below 0.05.
+Distress companies were also far more likely to report a loss the next year
+(32% vs 1%). The least powerful
+comparison is Beneish M on next-year revenue growth, with only 8
+companies in its smaller group; Beneish M exists for only 157 of
+399 company-years.</p>
+<p><img alt="Figure7_Piotroski_Returns" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure7_Piotroski_Returns.png" /></p>
+<p><img alt="Figure8_Altman_Loss_Rate" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure8_Altman_Loss_Rate.png" /></p>
+<h3 class="page">RQ4 -- Management tone vs reality</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Tone measure</th>
+<th style="text-align: left;">Compared with</th>
+<th style="text-align: right;">N</th>
+<th style="text-align: right;">Pearson r</th>
+<th style="text-align: left;">p-value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">MD&amp;A tone</td>
+<td style="text-align: left;">same-year revenue growth</td>
+<td style="text-align: right;">335</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: left;">&lt;0.001</td>
+</tr>
+<tr>
+<td style="text-align: left;">MD&amp;A tone</td>
+<td style="text-align: left;">same-year ROE</td>
+<td style="text-align: right;">378</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: left;">0.110</td>
+</tr>
+<tr>
+<td style="text-align: left;">MD&amp;A tone</td>
+<td style="text-align: left;">next-year revenue growth</td>
+<td style="text-align: right;">333</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: left;">0.129</td>
+</tr>
+<tr>
+<td style="text-align: left;">MD&amp;A tone</td>
+<td style="text-align: left;">next-12m excess return (vs XLK)</td>
+<td style="text-align: right;">395</td>
+<td style="text-align: right;">-0.01</td>
+<td style="text-align: left;">0.843</td>
+</tr>
+<tr>
+<td style="text-align: left;">YoY change in tone</td>
+<td style="text-align: left;">revenue_growth_change</td>
+<td style="text-align: right;">277</td>
+<td style="text-align: right;">0.25</td>
+<td style="text-align: left;">&lt;0.001</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">FY</th>
+<th style="text-align: right;">MD&amp;A tone</th>
+<th style="text-align: left;">Revenue growth</th>
+<th style="text-align: left;">Next-year revenue growth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">TXN</td>
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">0.61</td>
+<td style="text-align: left;">-12.5%</td>
+<td style="text-align: left;">-10.7%</td>
+</tr>
+<tr>
+<td style="text-align: left;">INTC</td>
+<td style="text-align: right;">2022</td>
+<td style="text-align: right;">0.38</td>
+<td style="text-align: left;">-20.2%</td>
+<td style="text-align: left;">-14.0%</td>
+</tr>
+<tr>
+<td style="text-align: left;">TXN</td>
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">0.38</td>
+<td style="text-align: left;">-10.7%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">CDW</td>
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">0.35</td>
+<td style="text-align: left;">-10.0%</td>
+<td style="text-align: left;">-1.8%</td>
+</tr>
+<tr>
+<td style="text-align: left;">TXN</td>
+<td style="text-align: right;">2019</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: left;">-8.9%</td>
+<td style="text-align: left;">0.5%</td>
+</tr>
+<tr>
+<td style="text-align: left;">AMD</td>
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">0.26</td>
+<td style="text-align: left;">-3.9%</td>
+<td style="text-align: left;">13.7%</td>
+</tr>
+<tr>
+<td style="text-align: left;">TYL</td>
+<td style="text-align: right;">2021</td>
+<td style="text-align: right;">-0.11</td>
+<td style="text-align: left;">42.6%</td>
+<td style="text-align: left;">16.2%</td>
+</tr>
+<tr>
+<td style="text-align: left;">GDDY</td>
+<td style="text-align: right;">2021</td>
+<td style="text-align: right;">-0.12</td>
+<td style="text-align: left;">15.0%</td>
+<td style="text-align: left;">7.2%</td>
+</tr>
+<tr>
+<td style="text-align: left;">NXPI</td>
+<td style="text-align: right;">2021</td>
+<td style="text-align: right;">-0.14</td>
+<td style="text-align: left;">28.5%</td>
+<td style="text-align: left;">19.4%</td>
+</tr>
+<tr>
+<td style="text-align: left;">KLAC</td>
+<td style="text-align: right;">2020</td>
+<td style="text-align: right;">-0.19</td>
+<td style="text-align: left;">27.1%</td>
+<td style="text-align: left;">19.2%</td>
+</tr>
+</tbody>
+</table>
+<p>MD&amp;A tone tracks the year that has just happened (r=0.32 with same-year revenue
+growth, p&lt;0.001) but not the next one (r=0.08 with next-year revenue
+growth, p=0.129; r=-0.01 with next-12-month excess return,
+p=0.843). Tone confirms the past; it does not predict the future.</p>
+<p><img alt="Figure9_Tone_vs_NextYearGrowth" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure9_Tone_vs_NextYearGrowth.png" /></p>
+<h3 class="page">RQ5 -- Sub-industry differences</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Sub-industry</th>
+<th style="text-align: right;">Company-years</th>
+<th style="text-align: right;">Avg Quality Score</th>
+<th style="text-align: left;">Avg EV/Sales</th>
+<th style="text-align: left;">Avg next-12m return vs XLK</th>
+<th style="text-align: right;">Quality-valuation r</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">126</td>
+<td style="text-align: right;">39.1</td>
+<td style="text-align: left;">2.9x</td>
+<td style="text-align: left;">-2.5%</td>
+<td style="text-align: right;">0.5</td>
+</tr>
+<tr>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">119</td>
+<td style="text-align: right;">50.4</td>
+<td style="text-align: left;">5.2x</td>
+<td style="text-align: left;">+5.4%</td>
+<td style="text-align: right;">0.07</td>
+</tr>
+<tr>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">154</td>
+<td style="text-align: right;">47.4</td>
+<td style="text-align: left;">7.1x</td>
+<td style="text-align: left;">-1.6%</td>
+<td style="text-align: right;">0.34</td>
+</tr>
+</tbody>
+</table>
+<p>The quality-valuation link is strongest in Hardware &amp; Equipment (r=0.50)
+and weakest in Semiconductors (r=0.07). Semiconductors have the highest average Quality Score yet the weakest link, consistent with them being priced on the cycle and growth narratives rather than steady fundamentals. Multiples differ sharply by sub-industry
+(average EV/Sales 2.9x to 7.1x), which is why RQ2
+judges each company against its own sub-industry.</p>
+<p><img alt="Figure10_Sub_Industry_Comparison" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure10_Sub_Industry_Comparison.png" /></p>
+<p><img alt="Figure11_Quality_Distribution" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure11_Quality_Distribution.png" /></p>
+<h2 class="page">How the AI system uses these results</h2>
+<p>The study above is the evidence layer of FinChat; this section is how the AI layer turns it into
+answers without ever doing the maths itself.</p>
+<ol>
+<li><strong>Computation and narration are separate.</strong> Every figure -- Quality Scores, fair-value lines,
+   verdicts, DCF, grouped outcomes -- is computed by deterministic Python (<code>finchat/engine/mispricing.py</code>)
+   and stored in SQLite. The language model never calculates; it only reads tool output.</li>
+<li><strong>Tool use.</strong> The Gemini agent chooses among 15 tools, three of them added for this study:
+   <code>get_valuation_check</code> (one company's score, pillars, verdict, fair-value line and DCF),
+   <code>list_mispriced</code> (leaderboards) and <code>get_score_effectiveness</code> (RQ3 outcomes). Every tool returns JSON
+   with a <code>source</code> field, so each answer can be traced to a table.</li>
+<li><strong>Number grounding.</strong> Every number in AI-written text must match a value in the data it was given
+   (within 1%, or x100 for percentages); notation such as R^2 or FY2024 is ignored. A failing draft is
+   regenerated once, then replaced by a deterministic template, so nothing unverified is published.
+   For this report Gemini wrote 21 of 21 texts; 1 drafts were rejected by the
+   check and regenerated, and 21 of 21 published texts are verified.</li>
+<li><strong>Guardrails in the system prompt:</strong> a verdict is a statistical comparison, not a recommendation;
+   always state the fair-value line's R²; say the verdicts did not predict returns in back-tests; never
+   add causes the tools did not state; end with "Not investment advice".</li>
+</ol>
+<p><strong>Live chat test.</strong> The three questions below were put to the running agent (Gemini
+gemini-flash-lite-latest); full answers are in <code>analysis/outputs/chat_demo.md</code>.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Question</th>
+<th style="text-align: left;">Tool called</th>
+<th style="text-align: right;">Numbers not in tool output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Is Nvidia overvalued for its quality?</td>
+<td style="text-align: left;">get_valuation_check</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Which tech companies look cheapest right now?</td>
+<td style="text-align: left;">list_mispriced</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Do high Piotroski scores lead to better returns?</td>
+<td style="text-align: left;">get_score_effectiveness</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Screenshot_Chat_Answer_Crop" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Screenshot_Chat_Answer_Crop.png" /></p>
+<p><em>The live chat answering "Is Nvidia overvalued for its quality?"; the Outputs panel shows the
+<code>get_valuation_check</code> tool call behind the answer.</em></p>
+<p><strong>What the number check cannot catch.</strong> It verifies that each figure exists in the tool output, not
+that it is described correctly. Reviewing the answers by hand found three such slips in earlier runs,
+each fixed at the source: an invented explanation for a result; DXC's gap called "the largest
+positive" when it is the most negative; and NVDA's gap of 1.46 log points restated as "+146.4%"
+(which passed the check, because genuine fractions may be shown x100). The tool now labels the gap
+in log points and also returns the plain ratio (NVDA trades at 4.34x its expected multiple), and the
+prompt forbids converting gaps to percentages and adding unstated causes. One slip remains in the
+final run: the leaderboard answer attributes the same-year R² (0.29) to the sub-industry lines,
+whose own R² differs. AI wording still needs human review.</p>
+<h2 class="page">AI-generated key findings and company notes</h2>
+<p><em>Written by Gemini (gemini-flash-lite-latest) from the numbers above. Every number was checked against the input data before publication
+(21/21 verified; 1 draft(s) rejected and regenerated). Not investment advice.</em></p>
+<h3>Key findings</h3>
+<p>An analysis of 57 companies across 383 company-years spanning FY2018-FY2024 reveals that fundamental quality shares a real but modest relationship with market valuation. The correlation between fundamental quality and valuation yields an r of 0.37, with an R² of 0.141, indicating that fundamental quality explains 14.1% of the variation in valuation. Furthermore, quality remains significant even when applying controls, yielding a p of 0.003. When testing out-of-sample verdicts for FY2019-FY2024, the data identified 12 companies categorized as undervalued in the latest year and 8 companies categorized as overvalued in the latest year. However, these verdicts did not successfully predict subsequent performance, as the undervalued group registered an average excess return versus XLK of -3.0%, while the overvalued group recorded an average excess return versus XLK of 1.1%, with a difference yielding a p of 0.64.</p>
+<p>Additional fundamental tests produced varied outcomes across the sample. The Piotroski strong versus weak excess return test yielded a p of 0.32, and the Beneish clean versus flagged excess return test resulted in a p of 0.26. The Altman safe versus distress excess return test showed a p of 1.0. However, the Altman test highlighted distinct operational differences, with safe companies achieving a next-year revenue growth of 11.6% compared to 5.7% for distressed companies, a statistically significant difference with a p of 0.006. </p>
+<p>Finally, textual analysis of management tone demonstrated divergent relationships with growth and performance metrics. Management tone showed a correlation with same-year revenue growth of r = 0.32, but exhibited virtually no correlation with next 12-month excess returns, recording an r of -0.01. The data suggests that fundamental metrics relate to operational results and baseline valuations, but do not reliably track subsequent excess returns in this sample. Not investment advice.</p>
+<h3>Example company notes (FY2024)</h3>
+<ul>
+<li><strong>DXC (Undervalued):</strong> For fiscal year 2024, DXC carries an undervalued verdict as it trades at 1.1x EV/Sales versus 3.5x expected for its quality compared to Software &amp; Services peers on a fair-value line fitted only on earlier years. Its strongest pillar is earnings quality at 55.2, while its weakest pillar is profitability at 38.0. The DCF upside in percent is 265.6%, and the DCF supports the verdict.</li>
+<li><strong>DELL (Undervalued):</strong> For fiscal year 2024, the data suggests DELL is undervalued in the Hardware &amp; Equipment sub-industry as it trades at 1.2x sales versus 2.0x expected for its quality. Its strongest pillar score is safety at 77.3, while its weakest pillar score is profitability at 28.1. The DCF upside in percent is -40.7, and the DCF does not support the verdict.</li>
+<li><strong>NVDA (Overvalued):</strong> For fiscal year 2024, the verdict on NVDA in Semiconductors is Overvalued because it trades at an actual EV/Sales multiple of 17.9x versus an expected EV/Sales multiple of 4.1x for its quality. Its strongest pillar is growth at 100.0, while its weakest pillar is earnings quality at 57.3. The DCF upside is -40.6%, and the DCF supports the verdict, as the data suggests.</li>
+</ul>
+<p><em>All 20 notes are in <code>analysis/outputs/ai_commentary.md</code>.</em></p>
+<h2 class="page">Limitations</h2>
+<ul>
+<li><strong>Small, single-sector sample.</strong> 57 companies and 399 company-years; RQ2's out-of-sample test
+  has 108 flagged company-years. Findings describe large US tech only.</li>
+<li><strong>Survivorship bias.</strong> Companies were chosen from today's index; acquired or delisted firms (ANSYS,
+  Juniper) are missing, which tilts the sample toward survivors.</li>
+<li><strong>Staggered fiscal years.</strong> Z-scores and winsorization are computed within a fiscal-year label, but
+  year-ends range from late January (NVDA) to December (most companies), so a January filer is ranked
+  against peers whose same-labelled year closes up to eleven months later. Prices and fair-value lines
+  are point-in-time; this cross-sectional ranking is not.</li>
+<li><strong>Coarse sub-industries.</strong> "Software &amp; Services" mixes high-multiple software with low-multiple IT
+  services (DXC, CTSH, ACN, EPAM, CDW), so some IT-services "undervalued" verdicts reflect business mix.</li>
+<li><strong>EV/Sales ignores margins.</strong> A 5%-margin assembler and a 40%-margin software firm can look alike on
+  quality yet deserve very different sales multiples; EV/EBIT or EV/gross profit would control for this.</li>
+<li><strong>Non-random missing data.</strong> Beneish M needs SG&amp;A, PP&amp;E and a prior year, so coverage is
+  14% in Software &amp; Services versus
+  67% in Semiconductors; Beneish results say little about software.</li>
+<li><strong>The DCF is a uniform yardstick:</strong> one WACC (9%) and terminal growth (2.5%) for every company, no
+  CAPM beta, and free cash flow is not reduced by stock-based compensation, which flatters tech companies.</li>
+<li><strong>Score design.</strong> Altman Z was built on 1960s manufacturers and saturates for asset-light firms; the
+  Loughran-McDonald word counts ignore negation and boilerplate.</li>
+<li><strong>Correlation, not causation.</strong> RQ1 is descriptive; quality and valuation may both reflect growth
+  expectations.</li>
+</ul>
+<h2 class="page">Revisions since the first version</h2>
+<p>An external review of the first version found several design problems. Each was checked against the
+data and fixed:</p>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>First version</th>
+<th>This version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Altman Z used each company's <em>current</em> market cap for every historical year</td>
+<td>NVDA FY2018 Altman Z = 486, Quality Score 100</td>
+<td>Point-in-time market cap; NVDA FY2018 Altman Z = 4.4</td>
+</tr>
+<tr>
+<td>Altman Z, Piotroski F and Beneish M inside the Quality Score (double counting; market cap inside the predictor)</td>
+<td>Included</td>
+<td>Removed; tested separately in RQ3</td>
+</tr>
+<tr>
+<td>One fair-value line for all sub-industries</td>
+<td>Low-multiple hardware firms systematically looked "undervalued"</td>
+<td>One line per sub-industry</td>
+</tr>
+<tr>
+<td>Fair-value line fitted on all years, then used to judge earlier years</td>
+<td>In-sample</td>
+<td>Walk-forward: fitted only on earlier years</td>
+</tr>
+<tr>
+<td>Raw returns</td>
+<td>Market-wide swings included</td>
+<td>Returns in excess of XLK</td>
+</tr>
+<tr>
+<td>"Undervalued beat overvalued"</td>
+<td>29.9% vs 17.3% raw return, p=0.11</td>
+<td>-3.0% vs 1.1% excess return, p=0.642</td>
+</tr>
+<tr>
+<td>Quality explains valuation (R²)</td>
+<td>14.8%</td>
+<td>14.1%</td>
+</tr>
+<tr>
+<td>AI commentary</td>
+<td>Deterministic template (no API key)</td>
+<td>Written by Gemini, every number verified</td>
+</tr>
+<tr>
+<td>Figure 12 sample-size label</td>
+<td>Error bar struck through "n=224" (read as "n=-24")</td>
+<td>n shown in the axis labels</td>
+</tr>
+</tbody>
+</table>
+<p>The first version's RQ3 text also said every p-value exceeded 0.10, contradicting a Mann-Whitney
+p=0.02 in its own table; that result was an artefact of the Altman Z bug and is gone after the fix.</p>
+<h2>Conclusion</h2>
+<p>Fundamental quality and valuation are positively related in this tech sample, but modestly: quality
+alone explains about 14% of the spread in EV/Sales, and sector and timing explain
+more. When the "cheap for its quality" signal is tested properly -- each company against its own
+sub-industry, with a fair-value line that never sees the future, and returns measured against the tech
+sector -- it does <strong>not</strong> predict next-year returns. The classic risk scores do not predict excess
+returns either, although Altman Z does flag weaker next-year revenue growth and more losses, and
+management tone describes the past rather than the future. The honest conclusion is that a quality score
+built from public filings is a useful way to <em>describe</em> and <em>screen</em> companies, but in large-cap tech it
+is not, on its own, a source of returns -- which is why every Radar verdict is labelled "Not investment
+advice".</p></body></html>

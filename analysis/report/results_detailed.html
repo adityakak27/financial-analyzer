@@ -1,0 +1,1493 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Mispricing Radar: Does the Stock Market Pay for Fundamental Quality?</title><style>
+@page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #1f2328; font-size: 10.5pt;
+       line-height: 1.5; margin: 0; }
+h1 { font-size: 22pt; margin: 0 0 4mm; color: #14213d; }
+h2 { font-size: 15pt; color: #14213d; border-bottom: 2px solid #cc785c; padding-bottom: 2mm;
+     margin: 9mm 0 4mm; break-after: avoid; }
+h2.page, h3.page { break-before: page; }
+h2.page { margin-top: 0; }
+h3 { font-size: 12.5pt; color: #14213d; margin: 7mm 0 3mm; break-after: avoid; }
+p, li { orphans: 3; widows: 3; }
+strong { color: #111; }
+code { font-family: Consolas, monospace; font-size: 9pt; background: #f2f2f0; padding: 0 3px; border-radius: 3px; }
+blockquote { margin: 4mm 0; padding: 3mm 5mm; background: #faf6f3; border-left: 3px solid #cc785c;
+             color: #333; break-inside: avoid; }
+table { border-collapse: collapse; width: 100%; margin: 3mm 0 5mm; font-size: 8.6pt; break-inside: avoid; }
+th { background: #14213d; color: #fff; text-align: left; padding: 1.6mm 2mm; font-weight: 600; }
+td { padding: 1.4mm 2mm; border-bottom: 1px solid #e3e3e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f7f7f5; }
+img { display: block; max-width: 100%; max-height: 118mm; margin: 4mm auto 2mm; break-inside: avoid; }
+p:has(> img) { break-inside: avoid; text-align: center; }
+em { color: #555; }
+.cover { height: 255mm; display: flex; flex-direction: column; justify-content: center; break-after: page; }
+.cover .kicker { color: #cc785c; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: 10pt; }
+.cover h1 { font-size: 30pt; line-height: 1.15; margin: 4mm 0 6mm; }
+.cover .sub { font-size: 13pt; color: #444; max-width: 150mm; }
+.cover .facts { margin-top: 14mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; max-width: 165mm; }
+.cover .fact { border-top: 3px solid #cc785c; padding-top: 2mm; }
+.cover .fact b { display: block; font-size: 17pt; color: #14213d; }
+.cover .fact span { font-size: 9pt; color: #555; }
+.cover .meta { margin-top: 18mm; font-size: 9.5pt; color: #666; }
+</style></head><body>
+<section class="cover">
+  <div class="kicker">FinChat &middot; Equity Research Copilot</div>
+  <h1>Mispricing Radar: Does the Stock Market Pay for Fundamental Quality?</h1>
+  <div class="sub">A point-in-time study of fundamental quality versus market valuation in US technology
+  stocks, built from SEC 10-K filings, with an AI analyst layer whose every number is verified.</div>
+  <div class="facts">
+    <div class="fact"><b>57</b><span>companies, S&amp;P 500 tech</span></div>
+    <div class="fact"><b>399</b><span>company-years, FY2018-2024</span></div>
+    <div class="fact"><b>9</b><span>figures &middot; 4 research questions</span></div>
+  </div>
+  <div class="meta">57 US technology companies, FY2018-FY2024 (399 company-years), built on SEC 10-K filings.<br>November 2026</div>
+</section><h2>Summary</h2>
+<p>We studied 57 large US tech companies over seven years and asked four questions. Do better
+businesses get higher stock prices? Can we spot companies that look too cheap or too expensive for
+how good they are, and does that help pick winners? Does the tone of the annual report match what
+really happened? Do chip, software and hardware companies behave differently?</p>
+<p>All numbers come from Python code (pandas, SciPy and statsmodels). The AI part of the app only puts
+these numbers into words, and a checker confirms every number it writes.</p>
+<table>
+<thead>
+<tr>
+<th>RQ</th>
+<th>Question</th>
+<th>Method used</th>
+<th>Result</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RQ1</td>
+<td>Do better-quality companies have higher valuations?</td>
+<td>Correlation; simple linear regression; multiple regression with controls</td>
+<td>r = 0.37. Quality explains 14.1% of valuation (p &lt; 0.001). Still significant after controls (p = 0.003).</td>
+<td>Yes, but the effect is small</td>
+</tr>
+<tr>
+<td>RQ2</td>
+<td>Which companies look cheap or expensive for their quality, and did that predict returns?</td>
+<td>Regression line per sub-industry, trained only on past years; z-scores; DCF check; t-test</td>
+<td>"Cheap" stocks -3.0% vs "expensive" stocks +1.1% against the tech index (p = 0.642)</td>
+<td>No</td>
+</tr>
+<tr>
+<td>RQ3</td>
+<td>Does management's tone match real results?</td>
+<td>Tone score from the Loughran-McDonald finance dictionary; correlation</td>
+<td>Same year r = 0.18 (p = 0.001). Next year r = 0.07 (p = 0.205).</td>
+<td>Only for the past year, and weakly</td>
+</tr>
+<tr>
+<td>RQ4</td>
+<td>Do chips, software and hardware differ?</td>
+<td>Group averages; correlation inside each group</td>
+<td>Link between quality and valuation ranges from r = 0.07 to 0.50</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Screenshot_Radar_Chart" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Screenshot_Radar_Chart.png" /></p>
+<p><em>The Mispricing Radar page in the FinChat app. Each dot is a company, placed by its quality and its
+valuation and compared with the line for its own sub-industry.</em></p>
+<h2>Research questions</h2>
+<ul>
+<li><strong>RQ1.</strong> Do higher-quality companies trade at higher valuation multiples, and how much of valuation does quality explain?</li>
+<li><strong>RQ2.</strong> Which companies look undervalued or overvalued for their quality, does a DCF agree, and did these labels predict next-year returns?</li>
+<li><strong>RQ3.</strong> Does the tone of management's discussion (MD&amp;A) match actual performance, in the same year and the next?</li>
+<li><strong>RQ4.</strong> Do semiconductors, software and hardware differ in quality, valuation and the link between them?</li>
+</ul>
+<h2>Data</h2>
+<p>We used 57 companies: the 19 companies already in the FinChat app plus 38 more from the S&amp;P 500
+technology sector that filed a 10-K for every year from 2018 to 2024. ANSYS and Juniper Networks
+were left out because they were bought by other companies and no longer appear in SEC's list.</p>
+<p>Each row of data is one company in one year, for example "NVDA, FY2024". With 57 companies and 7
+years, that gives 399 rows.</p>
+<p>The data comes from four places:</p>
+<ul>
+<li>SEC EDGAR, for the income statement, balance sheet and cash flow numbers. All ratios are worked out from these.</li>
+<li>The 10-K annual report text, for the Management's Discussion &amp; Analysis (MD&amp;A) section used in RQ3.</li>
+<li>The Loughran-McDonald Master Dictionary (University of Notre Dame), the finance word list used to score tone in RQ3.</li>
+<li>Yahoo Finance, for daily share prices of each company and of XLK, a fund that tracks the whole US tech sector. XLK is our benchmark.</li>
+</ul>
+<p>Each company belongs to one sub-industry: Hardware &amp; Equipment (18 companies), Semiconductors (17)
+or Software &amp; Services (22).</p>
+<p>Some tests cannot use all 399 rows, because a number they need is missing:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Stage</th>
+<th style="text-align: right;">Company-years</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">All rows collected (57 x 7)</td>
+<td style="text-align: right;">399</td>
+</tr>
+<tr>
+<td style="text-align: left;">Has a Quality Score</td>
+<td style="text-align: right;">396</td>
+</tr>
+<tr>
+<td style="text-align: left;">Has EV/Sales (needs a share price and share count)</td>
+<td style="text-align: right;">386</td>
+</tr>
+<tr>
+<td style="text-align: left;">Used in RQ1 simple regression</td>
+<td style="text-align: right;">383</td>
+</tr>
+<tr>
+<td style="text-align: left;">Used in RQ1 regression with controls (revenue growth needs the year before)</td>
+<td style="text-align: right;">330</td>
+</tr>
+<tr>
+<td style="text-align: left;">Has an RQ2 label (starts FY2019, because FY2018 has no earlier year to learn from)</td>
+<td style="text-align: right;">332</td>
+</tr>
+<tr>
+<td style="text-align: left;">Has a next-12-month return against XLK</td>
+<td style="text-align: right;">397</td>
+</tr>
+</tbody>
+</table>
+<h2>Main measures used in this study</h2>
+<p>Financial terms are explained in Appendix A, and statistics terms in Appendix B.</p>
+<h3>1. The Quality Score (0 to 100)</h3>
+<p>The Quality Score is one number that says how strong a business is, using only its accounts (no
+share prices). Keeping prices out lets us compare quality with price fairly.</p>
+<p>We build it in five steps.</p>
+<p><strong>Step 1. Choose 11 measures, grouped into four areas (pillars).</strong></p>
+<table>
+<thead>
+<tr>
+<th>Pillar</th>
+<th>Measures</th>
+<th>Better when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Profitability</td>
+<td>ROE, ROIC, operating margin, net margin</td>
+<td>higher</td>
+</tr>
+<tr>
+<td>Growth</td>
+<td>revenue growth, net income growth</td>
+<td>higher</td>
+</tr>
+<tr>
+<td>Safety</td>
+<td>current ratio, interest coverage; debt/equity</td>
+<td>higher; debt/equity lower</td>
+</tr>
+<tr>
+<td>Earnings quality</td>
+<td>free cash flow margin; accruals = (net income - operating cash flow) / total assets</td>
+<td>FCF higher; accruals lower</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Step 2. Turn each measure into a z-score inside its year.</strong> A z-score shows how far a company is
+above or below the average company that year, in units of standard deviation:</p>
+<blockquote>
+<p>z = (company's value - average that year) / standard deviation that year</p>
+</blockquote>
+<p>This puts measures with different units (percent, ratios) on the same scale. For measures where
+lower is better (debt/equity and accruals), we flip the sign.</p>
+<p><strong>Step 3. Average the z-scores inside each pillar.</strong> A pillar needs at least 2 of its measures.</p>
+<p><strong>Step 4. Average the four pillars</strong> into one number.</p>
+<p><strong>Step 5. Rescale to 0-100:</strong> Score = (x - lowest) / (highest - lowest) x 100. So 100 is the best
+company-year in the data and 0 is the worst.</p>
+<p>We did not put the well-known Altman Z, Piotroski F or Beneish M scores into the Quality Score. They
+are built from the same ratios, so they would count things twice. Altman Z also uses market value,
+which would put the share price inside a score that we then compare with the share price.</p>
+<p><img alt="Figure3_Top_Quality_Scores" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure3_Top_Quality_Scores.png" /></p>
+<h3>2. How we measure valuation: EV/Sales</h3>
+<ul>
+<li><strong>Enterprise value (EV)</strong> is what it would cost to buy the whole company: market value + debt - cash - short-term investments.</li>
+<li><strong>Market value</strong> is share price x number of shares. We use the price on the first trading day on or after the 10-K was filed, so we only use prices from when the report was public.</li>
+<li><strong>EV/Sales</strong> is EV divided by revenue. We use it instead of P/E because P/E does not work when a company makes a loss.</li>
+<li><strong>We take the log of EV/Sales</strong> in the regressions. Most companies trade at 1x to 8x sales, but a few are at 18x or more. Taking the log pulls these big values in and makes the regression slope easy to read as a percentage change.</li>
+<li><strong>We cap extreme values</strong> (winsorizing). In each year, any value below the 5th percentile or above the 95th is set to that limit, so a few odd companies cannot drive the results. This is done for EV/Sales, log EV/Sales, P/E, ROE, ROIC and debt/equity.</li>
+</ul>
+<p><img alt="Figure4_Top_EV_Sales" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure4_Top_EV_Sales.png" /></p>
+<h3>3. Returns compared with the tech sector</h3>
+<ul>
+<li><strong>Next-12-month return</strong> is the change in share price (with dividends) from the filing date to one year later.</li>
+<li><strong>Excess return</strong> is the stock's 12-month return minus XLK's return over the same days. This removes moves that hit all of tech at once, such as the 2022 sell-off, so we only see whether a company did better or worse than its sector.</li>
+</ul>
+<h2 class="page">Results</h2>
+<h3>RQ1: Do higher-quality companies trade at higher multiples?</h3>
+<p><strong>The question.</strong> If investors reward good businesses, companies with a higher Quality Score should
+have a higher EV/Sales. We also want to know how much of the difference in valuation quality can explain.</p>
+<p><strong>What we did.</strong> We used three methods, each building on the last.</p>
+<p><strong>Method 1: correlation.</strong> We measured Pearson r and Spearman rho between Quality Score and
+log(EV/Sales) using all 383 company-years, and then for each year on its own.</p>
+<p><strong>Method 2: simple linear regression.</strong> We fitted a straight line with Quality Score as the only input:</p>
+<blockquote>
+<p>log(EV/Sales) = a + b x QualityScore + error</p>
+</blockquote>
+<p>We used <code>scipy.stats.linregress</code> on 383 company-years. The line it found is:</p>
+<blockquote>
+<p><strong>log(EV/Sales) = 0.1184 + 0.02601 x QualityScore</strong>    (R² = 0.141, p = 3.2 x 10⁻¹⁴, N = 383)</p>
+</blockquote>
+<p><em>Reading the slope.</em> Because we used the log of EV/Sales, the slope works as a percentage:
+e^(0.02601 x 10) = 1.30. So every 10 extra points of Quality Score goes with an EV/Sales about 30% higher.</p>
+<p><em>Example.</em> A company with a Quality Score of 50 gets log(EV/Sales) = 0.1184 + 0.02601 x 50 = 1.419,
+so its expected EV/Sales is e^1.419 = 4.1x. A company with a score of 60 gets 0.1184 + 0.02601 x 60 =
+1.679, which is 5.4x.</p>
+<p><strong>Method 3: multiple regression with controls.</strong> Quality could look important only because good
+companies also tend to grow fast, or because all multiples rose over time, or because software
+companies trade higher than hardware companies. To check this, we added these as extra inputs and
+used <code>statsmodels</code> OLS:</p>
+<blockquote>
+<p>log(EV/Sales) = a + b₁·QualityScore + b₂·RevenueGrowth + (one yes/no variable per year) + (one yes/no variable per sub-industry) + error</p>
+</blockquote>
+<p>Standard errors are clustered by company. The sample drops to 330 rows because revenue growth needs
+the year before, so FY2018 falls out. FY2019 and Hardware &amp; Equipment are the baselines that the
+other years and sub-industries are compared with.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Variable</th>
+<th style="text-align: right;">Coefficient</th>
+<th style="text-align: right;">Std. error</th>
+<th style="text-align: right;">p-value</th>
+<th style="text-align: left;">What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Quality Score</strong></td>
+<td style="text-align: right;"><strong>0.0222</strong></td>
+<td style="text-align: right;">0.008</td>
+<td style="text-align: right;"><strong>0.003</strong></td>
+<td style="text-align: left;">10 more points goes with about 25% higher EV/Sales (e^0.222 = 1.25), with everything else held the same</td>
+</tr>
+<tr>
+<td style="text-align: left;">Revenue growth (%)</td>
+<td style="text-align: right;">-0.0003</td>
+<td style="text-align: right;">0.003</td>
+<td style="text-align: right;">0.925</td>
+<td style="text-align: left;">no effect once quality is included</td>
+</tr>
+<tr>
+<td style="text-align: left;">Year 2020</td>
+<td style="text-align: right;">0.104</td>
+<td style="text-align: right;">0.076</td>
+<td style="text-align: right;">0.171</td>
+<td style="text-align: left;">no real difference from 2019</td>
+</tr>
+<tr>
+<td style="text-align: left;">Year 2021</td>
+<td style="text-align: right;">0.323</td>
+<td style="text-align: right;">0.102</td>
+<td style="text-align: right;">0.002</td>
+<td style="text-align: left;">multiples about 38% higher than in 2019</td>
+</tr>
+<tr>
+<td style="text-align: left;">Year 2022</td>
+<td style="text-align: right;">0.264</td>
+<td style="text-align: right;">0.102</td>
+<td style="text-align: right;">0.010</td>
+<td style="text-align: left;">about 30% higher</td>
+</tr>
+<tr>
+<td style="text-align: left;">Year 2023</td>
+<td style="text-align: right;">0.416</td>
+<td style="text-align: right;">0.117</td>
+<td style="text-align: right;">&lt;0.001</td>
+<td style="text-align: left;">about 52% higher</td>
+</tr>
+<tr>
+<td style="text-align: left;">Year 2024</td>
+<td style="text-align: right;">0.655</td>
+<td style="text-align: right;">0.115</td>
+<td style="text-align: right;">&lt;0.001</td>
+<td style="text-align: left;">about 93% higher for the same quality</td>
+</tr>
+<tr>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">0.420</td>
+<td style="text-align: right;">0.208</td>
+<td style="text-align: right;">0.044</td>
+<td style="text-align: left;">about 52% higher than hardware for the same quality</td>
+</tr>
+<tr>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">0.713</td>
+<td style="text-align: right;">0.237</td>
+<td style="text-align: right;">0.003</td>
+<td style="text-align: left;">about 2x hardware for the same quality</td>
+</tr>
+<tr>
+<td style="text-align: left;">Intercept</td>
+<td style="text-align: right;">-0.354</td>
+<td style="text-align: right;">0.333</td>
+<td style="text-align: right;">0.288</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<p>How well the model fits: R² = 0.323 (adjusted 0.304), F = 14.9 (p &lt; 0.001), N = 330.</p>
+<p><strong>The two regressions side by side:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Model</th>
+<th style="text-align: right;">Slope on Quality Score</th>
+<th style="text-align: left;">p-value</th>
+<th style="text-align: right;">R²</th>
+<th style="text-align: right;">N</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Simple regression (Quality Score only)</td>
+<td style="text-align: right;">0.0260</td>
+<td style="text-align: left;">&lt;0.001</td>
+<td style="text-align: right;">0.141</td>
+<td style="text-align: right;">383</td>
+</tr>
+<tr>
+<td style="text-align: left;">Multiple regression (plus revenue growth, year and sub-industry; clustered SE)</td>
+<td style="text-align: right;">0.0222</td>
+<td style="text-align: left;">0.003</td>
+<td style="text-align: right;">0.323</td>
+<td style="text-align: right;">330</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Correlation in each year:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Fiscal year</th>
+<th style="text-align: right;">N</th>
+<th style="text-align: right;">Pearson r</th>
+<th style="text-align: right;">p-value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">51</td>
+<td style="text-align: right;">0.18</td>
+<td style="text-align: right;">0.217</td>
+</tr>
+<tr>
+<td style="text-align: right;">2019</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">0.27</td>
+<td style="text-align: right;">0.051</td>
+</tr>
+<tr>
+<td style="text-align: right;">2020</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">0.42</td>
+<td style="text-align: right;">0.001</td>
+</tr>
+<tr>
+<td style="text-align: right;">2021</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">0.48</td>
+<td style="text-align: right;">&lt;0.001</td>
+</tr>
+<tr>
+<td style="text-align: right;">2022</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">0.40</td>
+<td style="text-align: right;">0.003</td>
+</tr>
+<tr>
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">57</td>
+<td style="text-align: right;">0.46</td>
+<td style="text-align: right;">&lt;0.001</td>
+</tr>
+<tr>
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">0.54</td>
+<td style="text-align: right;">&lt;0.001</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What we found.</strong></p>
+<ul>
+<li>Better-quality companies do have higher valuations: Pearson r = 0.37 (p &lt; 0.001, N = 383). The rank-based
+  Spearman rho is 0.39 (p &lt; 0.001), so a few extreme companies are not driving the link.</li>
+<li>Quality on its own explains 14.1% of the differences in log(EV/Sales). The other 86% comes from other things.</li>
+<li>With the controls added, R² goes up to 32.3%. Most of that increase comes from the year and
+  sub-industry variables. The quality slope only falls a little (from 0.026 to 0.022) and is still
+  significant (p = 0.003), so growth, year and sub-industry do not explain the link away.</li>
+<li>The link got stronger over time, from r = 0.18 in FY2018 (not significant) to r = 0.54 in FY2024.</li>
+</ul>
+<p><strong>What it means.</strong> Investors do pay more for better businesses, but quality explains only a small
+part of valuation. This test shows that the two move together. It cannot prove that quality causes
+the higher price.</p>
+<p><img alt="Figure1_Quality_vs_Valuation" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure1_Quality_vs_Valuation.png" /></p>
+<h3 class="page">RQ2: Which companies look cheap or expensive for their quality, and did it matter?</h3>
+<p><strong>The question.</strong> The regression line from RQ1 tells us what EV/Sales a company "should" have for its
+quality. A company far below the line looks undervalued, and one far above looks overvalued. We ask
+two things. Does a DCF valuation agree with these labels? And did the undervalued companies do
+better than the overvalued ones over the next 12 months? Only the second tells us whether the labels
+are useful to an investor.</p>
+<p><strong>What we did.</strong> We built a fair-value line for each sub-industry, trained only on past years, in eight steps.</p>
+<ol>
+<li><strong>One line per sub-industry.</strong> We fit log(EV/Sales) = a + b x QualityScore separately for each
+   sub-industry, using the same regression as RQ1. Hardware usually trades at lower multiples than
+   software, so a single shared line would call every hardware company "cheap".</li>
+<li><strong>Only past data (walk-forward).</strong> To judge a company in year t, the line is trained only on years
+   before t. So FY2019 is judged with a line trained on FY2018, and FY2024 with a line trained on
+   FY2018 to FY2023. The model never uses information from the same year or the future, which is how
+   an investor would have had to work at the time. FY2018 has no earlier year, so labels start in FY2019.</li>
+<li><strong>Expected multiple</strong> = e^(a + b x QualityScore), read from the line.</li>
+<li><strong>Gap</strong> = actual log(EV/Sales) - expected log(EV/Sales). A positive gap means the company is more
+   expensive than its quality suggests. This gap is the residual from the regression.</li>
+<li><strong>Turn the gap into a z-score inside each year.</strong> This removes moves that lifted all of tech in a
+   year, such as the rise in multiples in 2024.</li>
+<li><strong>Label each company.</strong> z of -1 or lower is Undervalued; z of +1 or higher is Overvalued; anything
+   in between is Fairly valued. About one in six companies falls into each of the two outer groups each year.</li>
+<li><strong>DCF check.</strong> A DCF (discounted cash flow) model estimates what a share is worth from its future
+   cash. We start from free cash flow (operating cash flow minus capital spending), grow it for 5 years
+   at the company's past 3-year growth rate (kept between -5% and +25%, slowing down over time), and
+   discount it at 9% a year. After year 5 we assume 2.5% growth forever. We subtract net debt and divide
+   by the number of shares to get a fair share price. The DCF agrees with an Undervalued label if it
+   shows more than 10% upside, and with an Overvalued label if it shows more than 10% downside.</li>
+<li><strong>Back-test.</strong> We put together all labels from FY2019 to FY2024 and compared the next-12-month
+   excess returns of the Undervalued group with the Overvalued group, using a Welch t-test. The test
+   gives a p-value: the chance of seeing a gap this big between the two averages if the labels really
+   made no difference.</li>
+</ol>
+<p><strong>The FY2024 lines</strong> (trained on FY2018 to FY2023):</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Sub-industry</th>
+<th style="text-align: right;">Intercept a</th>
+<th style="text-align: right;">Slope b</th>
+<th style="text-align: right;">R² on training data</th>
+<th style="text-align: right;">Rows used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">-0.620</td>
+<td style="text-align: right;">0.0345</td>
+<td style="text-align: right;">0.24</td>
+<td style="text-align: right;">104</td>
+</tr>
+<tr>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">1.131</td>
+<td style="text-align: right;">0.0029</td>
+<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">98</td>
+</tr>
+<tr>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">0.562</td>
+<td style="text-align: right;">0.0223</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">125</td>
+</tr>
+</tbody>
+</table>
+<p>The semiconductor line is almost flat (R² = 0.002). Among chip companies, quality tells us almost
+nothing about the multiple, so a chip company's label mostly compares its multiple with the chip average.</p>
+<p><strong>Worked example: NVDA in FY2024.</strong> Quality Score = 100, sub-industry Semiconductors.</p>
+<ul>
+<li>Expected log(EV/Sales) = 1.131 + 0.0029 x 100 = 1.421, so expected EV/Sales = e^1.421 = 4.1x</li>
+<li>Actual EV/Sales = 17.9x, and log(17.9) = 2.885</li>
+<li>Gap = 2.885 - 1.421 = 1.46, which means NVDA trades at about 4.3 times its expected multiple</li>
+<li>In FY2024 the average gap across all companies was 0.464 with a standard deviation of 0.616, so
+  z = (1.46 - 0.464) / 0.616 = 1.62. Since z is above 1, the label is Overvalued.</li>
+<li>The DCF shows 40.6% downside, so the DCF agrees.</li>
+</ul>
+<p><strong>FY2024: companies that look cheapest for their quality</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: left;">Sub-industry</th>
+<th style="text-align: right;">Quality</th>
+<th style="text-align: left;">EV/Sales</th>
+<th style="text-align: left;">Expected EV/Sales</th>
+<th style="text-align: right;">Gap z</th>
+<th style="text-align: left;">Label</th>
+<th style="text-align: left;">DCF upside</th>
+<th style="text-align: left;">DCF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">DXC</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">31.4</td>
+<td style="text-align: left;">1.1x</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: right;">-2.75</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+265.6%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">CTSH</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">37.4</td>
+<td style="text-align: left;">1.9x</td>
+<td style="text-align: left;">4.0x</td>
+<td style="text-align: right;">-2.01</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-41.5%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">CDW</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">28.6</td>
+<td style="text-align: left;">1.8x</td>
+<td style="text-align: left;">3.3x</td>
+<td style="text-align: right;">-1.72</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-70.7%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">DELL</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">38.5</td>
+<td style="text-align: left;">1.2x</td>
+<td style="text-align: left;">2.0x</td>
+<td style="text-align: right;">-1.67</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-40.7%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">HPQ</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">33.5</td>
+<td style="text-align: left;">1.1x</td>
+<td style="text-align: left;">1.7x</td>
+<td style="text-align: right;">-1.56</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-12.7%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">JBL</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">31.1</td>
+<td style="text-align: left;">1.1x</td>
+<td style="text-align: left;">1.6x</td>
+<td style="text-align: right;">-1.43</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+114.4%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">ACN</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">47.7</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: left;">5.1x</td>
+<td style="text-align: right;">-1.37</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-47.7%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">HPE</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">31.5</td>
+<td style="text-align: left;">1.2x</td>
+<td style="text-align: left;">1.6x</td>
+<td style="text-align: right;">-1.24</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+58.1%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">APH</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">45.6</td>
+<td style="text-align: left;">1.9x</td>
+<td style="text-align: left;">2.6x</td>
+<td style="text-align: right;">-1.22</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+45.0%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">AKAM</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">44.8</td>
+<td style="text-align: left;">3.8x</td>
+<td style="text-align: left;">4.8x</td>
+<td style="text-align: right;">-1.13</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+24.3%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">EPAM</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">40.7</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: left;">4.4x</td>
+<td style="text-align: right;">-1.12</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">-10.1%</td>
+<td style="text-align: left;">disagrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">SWKS</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">58.9</td>
+<td style="text-align: left;">3.1x</td>
+<td style="text-align: left;">3.7x</td>
+<td style="text-align: right;">-1.03</td>
+<td style="text-align: left;">Undervalued</td>
+<td style="text-align: left;">+353.5%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+</tbody>
+</table>
+<p><strong>FY2024: companies that look most expensive for their quality</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: left;">Sub-industry</th>
+<th style="text-align: right;">Quality</th>
+<th style="text-align: left;">EV/Sales</th>
+<th style="text-align: left;">Expected EV/Sales</th>
+<th style="text-align: right;">Gap z</th>
+<th style="text-align: left;">Label</th>
+<th style="text-align: left;">DCF upside</th>
+<th style="text-align: left;">DCF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">AVGO</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">54.8</td>
+<td style="text-align: left;">17.9x</td>
+<td style="text-align: left;">3.6x</td>
+<td style="text-align: right;">1.84</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-61.9%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">MPWR</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">44.4</td>
+<td style="text-align: left;">15.5x</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: right;">1.66</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-31.0%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">NVDA</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">100.0</td>
+<td style="text-align: left;">17.9x</td>
+<td style="text-align: left;">4.1x</td>
+<td style="text-align: right;">1.62</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-40.6%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">VRSN</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">22.1</td>
+<td style="text-align: left;">12.1x</td>
+<td style="text-align: left;">2.9x</td>
+<td style="text-align: right;">1.58</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-21.2%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">ADI</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">39.0</td>
+<td style="text-align: left;">12.1x</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: right;">1.27</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-71.5%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">WDC</td>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">18.6</td>
+<td style="text-align: left;">3.4x</td>
+<td style="text-align: left;">1.0x</td>
+<td style="text-align: right;">1.22</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-225.6%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">CDNS</td>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">52.1</td>
+<td style="text-align: left;">17.1x</td>
+<td style="text-align: left;">5.6x</td>
+<td style="text-align: right;">1.06</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-77.4%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+<tr>
+<td style="text-align: left;">AMD</td>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">38.5</td>
+<td style="text-align: left;">10.5x</td>
+<td style="text-align: left;">3.5x</td>
+<td style="text-align: right;">1.05</td>
+<td style="text-align: left;">Overvalued</td>
+<td style="text-align: left;">-88.7%</td>
+<td style="text-align: left;">agrees</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Does the DCF agree? (FY2024)</strong> 20 companies got a label. The DCF agreed with 14 and disagreed with
+6. All 8 overvalued companies also show downside in the DCF. But 6 of the 12 undervalued companies
+(ACN, CDW, CTSH, DELL, EPAM and HPQ) show downside too. A low EV/Sales can simply mean low profit
+margins, as in IT services and PC assembly, and EV/Sales cannot see margins.</p>
+<p><strong>Back-test: did the labels predict returns?</strong> All labels from FY2019 to FY2024, tested only on years the model had not seen:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Outcome</th>
+<th style="text-align: right;">n undervalued</th>
+<th style="text-align: left;">Average, undervalued</th>
+<th style="text-align: right;">n overvalued</th>
+<th style="text-align: left;">Average, overvalued</th>
+<th style="text-align: left;">Difference</th>
+<th style="text-align: right;">t-test p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Next-12m return minus XLK</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: left;">-3.0%</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: left;">+1.1%</td>
+<td style="text-align: left;">-4.1%</td>
+<td style="text-align: right;">0.642</td>
+</tr>
+<tr>
+<td style="text-align: left;">Next-12m return</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: left;">+22.1%</td>
+<td style="text-align: right;">44</td>
+<td style="text-align: left;">+25.3%</td>
+<td style="text-align: left;">-3.2%</td>
+<td style="text-align: right;">0.739</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What we found.</strong> Over the next year, undervalued companies did 3.0% worse than XLK, while
+overvalued companies did 1.1% better. The difference points the wrong way and is not significant
+(t-test p = 0.642, far above 0.05). Plain returns tell the same story (p = 0.739).</p>
+<p><strong>What it means.</strong> In this data, "cheap for its quality" does not help predict next year's return.
+When a company's price is far from what its quality suggests, the reason is most likely something
+the score does not measure, such as expected growth, profit margins or the type of business.</p>
+<p><img alt="Figure12_Verdict_Outcomes" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure12_Verdict_Outcomes.png" /></p>
+<p><img alt="Figure5_Biggest_Bargains" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure5_Biggest_Bargains.png" /></p>
+<p><img alt="Figure6_Biggest_Premiums" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure6_Biggest_Premiums.png" /></p>
+<h3 class="page">RQ3: Does management's tone match real results?</h3>
+<p><strong>The question.</strong> Every 10-K has a section called Management's Discussion &amp; Analysis (MD&amp;A), where
+managers describe how the year went. Does a positive tone go with good results in the year being
+described? And does it tell us anything about the next year, which would be more useful?</p>
+<p><strong>The dictionary we used.</strong> We measured tone with the Loughran-McDonald Master Dictionary
+(1993-2025 version), published by the University of Notre Dame. Tim Loughran and Bill McDonald built
+it by reading words in real 10-K filings (Journal of Finance, 2011). It is the standard word list for
+finance text. General-purpose word lists do not work well here: words like <em>liability</em>, <em>tax</em> or
+<em>cost</em> sound negative in everyday English but are neutral in a company report, and the
+Loughran-McDonald lists leave them out.</p>
+<p>The dictionary has 86,553 words. Each word is tagged by category. We used two categories:</p>
+<ul>
+<li><strong>Negative words (2,345)</strong>, such as <em>loss, decline, adverse, impairment, litigation, restructuring, weak</em>.</li>
+<li><strong>Positive words (347)</strong>, such as <em>achieve, improve, strong, gain, profitable, successful, favorable</em>.</li>
+</ul>
+<p>The dictionary marks some words as removed in later versions, and we left those out. It also lists
+every form of a word separately (for example <em>decline, declined, declines, declining</em>), so no
+word-stemming is needed.</p>
+<p><strong>How the tone score is calculated.</strong></p>
+<ol>
+<li>We took the MD&amp;A text out of each 10-K. These are the same filings used for the financial data,
+   saved on our computer.</li>
+<li>We split the text into words and changed them to lower case.</li>
+<li>We counted how many words are on the negative list and how many are on the positive list. Every
+   other word is ignored.</li>
+<li>We calculated the tone score:</li>
+</ol>
+<blockquote>
+<p>Tone = (positive words - negative words) / (positive words + negative words)</p>
+</blockquote>
+<p>The score goes from -1 (only negative words) to +1 (only positive words).</p>
+<p><em>Example.</em> A typical MD&amp;A in our data has about 7,800 words. Of these, 74 are on the negative list
+and 38 are on the positive list. Tone = (38 - 74) / (38 + 74) = -36 / 112 = -0.32.</p>
+<p>Most tone scores are below zero. Company reports use far more cautious and negative wording than
+positive wording, and the negative list is much longer than the positive one. This does not affect
+the tests, because correlation only looks at whether a more positive report than usual goes with
+better results than usual.</p>
+<p><strong>How much of the text the dictionary picks up.</strong> We checked this for all 395 MD&amp;A sections:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Check</th>
+<th style="text-align: right;">Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">MD&amp;A sections scored</td>
+<td style="text-align: right;">395</td>
+</tr>
+<tr>
+<td style="text-align: left;">Typical (median) length</td>
+<td style="text-align: right;">7,847 words</td>
+</tr>
+<tr>
+<td style="text-align: left;">Typical number of negative words found</td>
+<td style="text-align: right;">74</td>
+</tr>
+<tr>
+<td style="text-align: left;">Typical number of positive words found</td>
+<td style="text-align: right;">38</td>
+</tr>
+<tr>
+<td style="text-align: left;">Share of words that are on either list (median)</td>
+<td style="text-align: right;">1.5%</td>
+</tr>
+<tr>
+<td style="text-align: left;">Sections with no matched words</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Average tone score</td>
+<td style="text-align: right;">-0.31</td>
+</tr>
+<tr>
+<td style="text-align: left;">Lowest and highest tone score</td>
+<td style="text-align: right;">-1.00 and +0.79</td>
+</tr>
+</tbody>
+</table>
+<p>About 1.5% of words carry tone, which is normal: most words in any text (<em>the, revenue, quarter,
+products</em>) are neutral. Every section had matched words, so every company-year has a usable score.</p>
+<p><strong>What we tested.</strong></p>
+<ol>
+<li>The Pearson correlation between tone and four outcomes: revenue growth in the same year, ROE in
+   the same year, revenue growth in the next year and the next-12-month excess return.</li>
+<li>Whether a change in tone from one year to the next matches a change in revenue growth.</li>
+<li>A list of the biggest mismatches: the most positive reports written in years when revenue fell.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Tone measure</th>
+<th style="text-align: left;">Compared with</th>
+<th style="text-align: right;">N</th>
+<th style="text-align: right;">Pearson r</th>
+<th style="text-align: left;">p-value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">MD&amp;A tone</td>
+<td style="text-align: left;">revenue growth, same year</td>
+<td style="text-align: right;">335</td>
+<td style="text-align: right;">0.18</td>
+<td style="text-align: left;">0.001</td>
+</tr>
+<tr>
+<td style="text-align: left;">MD&amp;A tone</td>
+<td style="text-align: left;">ROE, same year</td>
+<td style="text-align: right;">378</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: left;">0.951</td>
+</tr>
+<tr>
+<td style="text-align: left;">MD&amp;A tone</td>
+<td style="text-align: left;">revenue growth, next year</td>
+<td style="text-align: right;">333</td>
+<td style="text-align: right;">0.07</td>
+<td style="text-align: left;">0.205</td>
+</tr>
+<tr>
+<td style="text-align: left;">MD&amp;A tone</td>
+<td style="text-align: left;">next-12m return minus XLK</td>
+<td style="text-align: right;">395</td>
+<td style="text-align: right;">-0.01</td>
+<td style="text-align: left;">0.813</td>
+</tr>
+<tr>
+<td style="text-align: left;">Change in tone from last year</td>
+<td style="text-align: left;">change in revenue growth from last year</td>
+<td style="text-align: right;">277</td>
+<td style="text-align: right;">0.15</td>
+<td style="text-align: left;">0.010</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Most positive reports in years when revenue fell:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Ticker</th>
+<th style="text-align: right;">FY</th>
+<th style="text-align: right;">MD&amp;A tone</th>
+<th style="text-align: left;">Revenue growth</th>
+<th style="text-align: left;">Revenue growth next year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">TXN</td>
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">0.58</td>
+<td style="text-align: left;">-10.7%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">TXN</td>
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">0.53</td>
+<td style="text-align: left;">-12.5%</td>
+<td style="text-align: left;">-10.7%</td>
+</tr>
+<tr>
+<td style="text-align: left;">INTC</td>
+<td style="text-align: right;">2022</td>
+<td style="text-align: right;">0.23</td>
+<td style="text-align: left;">-20.2%</td>
+<td style="text-align: left;">-14.0%</td>
+</tr>
+<tr>
+<td style="text-align: left;">LRCX</td>
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: left;">-14.5%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">CDW</td>
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">0.02</td>
+<td style="text-align: left;">-10.0%</td>
+<td style="text-align: left;">-1.8%</td>
+</tr>
+<tr>
+<td style="text-align: left;">ADI</td>
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: left;">-23.4%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">CDW</td>
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">-0.02</td>
+<td style="text-align: left;">-1.8%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">HPQ</td>
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">-0.05</td>
+<td style="text-align: left;">-0.3%</td>
+<td style="text-align: left;">n/a</td>
+</tr>
+<tr>
+<td style="text-align: left;">IBM</td>
+<td style="text-align: right;">2020</td>
+<td style="text-align: right;">-0.17</td>
+<td style="text-align: left;">-4.4%</td>
+<td style="text-align: left;">3.9%</td>
+</tr>
+<tr>
+<td style="text-align: left;">ANET</td>
+<td style="text-align: right;">2020</td>
+<td style="text-align: right;">-0.18</td>
+<td style="text-align: left;">-3.9%</td>
+<td style="text-align: left;">27.2%</td>
+</tr>
+</tbody>
+</table>
+<p>All ten are well above the average tone of -0.31, even though revenue fell in each case.</p>
+<p><strong>What we found.</strong></p>
+<ul>
+<li>Tone matches the year that just ended, but only weakly. It has r = 0.18 with same-year revenue
+  growth (p = 0.001). When tone gets more positive than the year before, revenue growth has usually
+  improved too (r = 0.15, p = 0.010).</li>
+<li>Tone has no link with profitability (ROE): r = 0.00 (p = 0.951).</li>
+<li>Tone does not predict the next year. It has r = 0.07 with next-year revenue growth (p = 0.205) and
+  r = -0.01 with next-year excess return (p = 0.813).</li>
+</ul>
+<p><strong>What it means.</strong> Tone is a weak summary of the year just reported and no help for forecasting.
+TXN's reports scored +0.53 and +0.58 in FY2023 and FY2024, far above the average of -0.31, while
+its revenue fell by more than 10% in both years. Tone should be read next to the actual numbers.</p>
+<p><img alt="Figure9_Tone_vs_NextYearGrowth" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure9_Tone_vs_NextYearGrowth.png" /></p>
+<h3 class="page">RQ4: Do sub-industries differ?</h3>
+<p><strong>The question.</strong> Are chip, software and hardware companies valued in the same way, or does each
+group reward quality differently?</p>
+<p><strong>What we did.</strong></p>
+<ol>
+<li>Split the 399 company-years into the three sub-industries.</li>
+<li>Worked out each group's average Quality Score, average EV/Sales and average next-12-month excess return.</li>
+<li>Measured the Pearson correlation between Quality Score and log(EV/Sales) inside each group. This
+   asks the RQ1 question again, one group at a time.</li>
+<li>Compared this with how well each group's RQ2 line fits (its R²).</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Sub-industry</th>
+<th style="text-align: right;">Company-years</th>
+<th style="text-align: right;">Avg Quality Score</th>
+<th style="text-align: left;">Avg EV/Sales</th>
+<th style="text-align: left;">Avg next-12m return minus XLK</th>
+<th style="text-align: right;">Quality-valuation r</th>
+<th style="text-align: right;">RQ2 line R² (FY2024)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Hardware &amp; Equipment</td>
+<td style="text-align: right;">126</td>
+<td style="text-align: right;">39.1</td>
+<td style="text-align: left;">2.9x</td>
+<td style="text-align: left;">-2.5%</td>
+<td style="text-align: right;">0.50</td>
+<td style="text-align: right;">0.24</td>
+</tr>
+<tr>
+<td style="text-align: left;">Semiconductors</td>
+<td style="text-align: right;">119</td>
+<td style="text-align: right;">50.4</td>
+<td style="text-align: left;">5.2x</td>
+<td style="text-align: left;">+5.4%</td>
+<td style="text-align: right;">0.07</td>
+<td style="text-align: right;">0.002</td>
+</tr>
+<tr>
+<td style="text-align: left;">Software &amp; Services</td>
+<td style="text-align: right;">154</td>
+<td style="text-align: right;">47.4</td>
+<td style="text-align: left;">7.1x</td>
+<td style="text-align: left;">-1.6%</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">0.10</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What we found.</strong></p>
+<ul>
+<li>Hardware &amp; Equipment has the strongest link (r = 0.50). Better hardware companies reliably get
+  higher multiples, although hardware multiples are low overall (2.9x on average).</li>
+<li>Semiconductors have the highest average quality (50.4) but almost no link (r = 0.07). Chip stocks
+  seem to be priced on the industry cycle and on growth stories such as AI demand, and current
+  fundamentals add little.</li>
+<li>Software &amp; Services has the highest multiples (7.1x) and a medium link (r = 0.34). This group mixes
+  high-multiple software firms with low-multiple IT services firms, which weakens the link.</li>
+<li>Average multiples differ by about 2.5 times between groups (2.9x to 7.1x). This matches the
+  sub-industry results in the RQ1 multiple regression.</li>
+</ul>
+<p><strong>What it means.</strong> Each sub-industry values quality in its own way. This is why RQ2 uses a separate
+line for each sub-industry.</p>
+<p><img alt="Figure10_Sub_Industry_Comparison" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure10_Sub_Industry_Comparison.png" /></p>
+<p><img alt="Figure11_Quality_Distribution" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Figure11_Quality_Distribution.png" /></p>
+<h2 class="page">How the AI chat uses these results</h2>
+<p>The FinChat app has an AI chat that answers questions using the results above. All numbers
+(Quality Scores, fair-value lines, labels, DCF values) are calculated in Python
+(<code>finchat/engine/mispricing.py</code>) and saved in an SQLite database. The language model (Gemini) does
+no maths; it only reads the results it is given.</p>
+<p>The chat agent can call 15 tools. Two of them serve this study: <code>get_valuation_check</code> gives one
+company's score, pillars, label, fair-value line and DCF, and <code>list_mispriced</code> gives the cheapest and
+most expensive lists. Every tool says which table its data came from, so each answer can be traced.</p>
+<p>Every number the AI writes must match a number in the data it was given, within 1%. If a draft
+fails this check, the AI tries once more; if it fails again, a fixed template is used instead. All 21
+texts published for this study passed.</p>
+<p>The answers also follow a few rules. A label is described as a statistical comparison, never as a
+buy or sell tip. Each answer gives the R² of the fair-value line, says the labels did not predict
+returns in back-tests, and ends with "Not investment advice".</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Question asked in the live chat</th>
+<th style="text-align: left;">Tool called</th>
+<th style="text-align: right;">Numbers not found in tool output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Is Nvidia overvalued for its quality?</td>
+<td style="text-align: left;">get_valuation_check</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">Which tech companies look cheapest right now?</td>
+<td style="text-align: left;">list_mispriced</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Screenshot_Chat_Answer_Crop" src="file:///C:/Users/ASHWIN/Downloads/updated_IP%20_work/analysis/outputs/figures/Screenshot_Chat_Answer_Crop.png" /></p>
+<p><em>The live chat answering "Is Nvidia overvalued for its quality?". The Outputs panel shows the
+<code>get_valuation_check</code> tool call behind the answer.</em></p>
+<p>Example company notes written by the AI for FY2024 (every number checked):</p>
+<ul>
+<li><strong>DXC (Undervalued):</strong> trades at 1.1x EV/Sales against 3.5x expected for its quality among Software
+  &amp; Services companies, using a line trained only on earlier years. Best pillar: earnings quality
+  (55.2). Weakest: profitability (38.0). DCF upside is +265.6%, so the DCF supports the label.</li>
+<li><strong>DELL (Undervalued):</strong> 1.2x EV/Sales against 2.0x expected in Hardware &amp; Equipment. Best pillar:
+  safety (77.3). Weakest: profitability (28.1). DCF upside is -40.7%, so the DCF does not support the label.</li>
+<li><strong>NVDA (Overvalued):</strong> 17.9x EV/Sales against 4.1x expected in Semiconductors. Best pillar: growth
+  (100.0). Weakest: earnings quality (57.3). DCF upside is -40.6%, so the DCF supports the label.</li>
+</ul>
+<h2 class="page">Limitations</h2>
+<ul>
+<li><strong>Small sample from one sector.</strong> 57 companies and 399 company-years; the RQ2 back-test has 108
+  labelled company-years. The results apply to large US tech companies only.</li>
+<li><strong>Survivorship bias.</strong> We picked companies from today's index, so companies that were bought or
+  delisted (such as ANSYS and Juniper) are missing.</li>
+<li><strong>Different year-ends.</strong> Scores are compared within the same fiscal-year label, but year-ends run
+  from late January (NVDA) to December. A January company can be compared with companies whose year
+  ends up to eleven months later.</li>
+<li><strong>Broad sub-industries.</strong> "Software &amp; Services" mixes software with IT services (DXC, CTSH, ACN,
+  EPAM, CDW), so some "undervalued" labels just reflect the type of business.</li>
+<li><strong>EV/Sales ignores margins.</strong> A company with a 5% margin and one with a 40% margin can have similar
+  quality scores but deserve very different sales multiples. EV/EBIT would handle this better.</li>
+<li><strong>One DCF setting for all.</strong> Every company uses the same 9% discount rate and 2.5% long-term growth,
+  and stock-based pay is not taken out of free cash flow.</li>
+<li><strong>Word counting misses context.</strong> The dictionary method cannot see negation ("not strong" counts as positive) and counts standard legal wording like any other text.</li>
+<li><strong>Some MD&amp;A sections are short.</strong> For 8 of 395 filings (for example AAPL FY2024, 845 words), the automatic extraction picked up less than 1,000 words, probably only part of the MD&amp;A. Their tone scores rest on fewer words.</li>
+<li><strong>Link, not cause.</strong> RQ1 shows that quality and valuation move together. Both could be driven by
+  expected growth.</li>
+</ul>
+<h2>Conclusion</h2>
+<ol>
+<li><strong>RQ1:</strong> Investors pay more for better businesses, but not much more. Ten extra Quality points go
+   with an EV/Sales about 25-30% higher, and quality alone explains about 14% of the differences in
+   valuation. The year and the sub-industry matter more.</li>
+<li><strong>RQ2:</strong> When we test "cheap for its quality" fairly (each company against its own sub-industry,
+   using only past data, with returns measured against the tech sector), it does not predict next
+   year's return.</li>
+<li><strong>RQ3:</strong> Management's tone, measured with the Loughran-McDonald dictionary, weakly reflects the year that just ended and says nothing useful about the year ahead.</li>
+<li><strong>RQ4:</strong> Each sub-industry values quality differently: strongly in hardware, moderately in
+   software and hardly at all in chips.</li>
+</ol>
+<p>A quality score built from public filings is useful for describing and screening companies. In
+large US tech it does not, on its own, predict returns, so every Radar label carries the note "Not
+investment advice".</p>
+<h2 class="page">Appendix A: Financial terms</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning in simple words</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>10-K</strong></td>
+<td>The annual report every US-listed company must file with the SEC. It contains the financial statements and management's comments.</td>
+</tr>
+<tr>
+<td><strong>SEC EDGAR</strong></td>
+<td>The SEC's public online database of company filings.</td>
+</tr>
+<tr>
+<td><strong>MD&amp;A</strong></td>
+<td>Management's Discussion &amp; Analysis: the part of the 10-K where managers explain the year's results in their own words.</td>
+</tr>
+<tr>
+<td><strong>Fiscal year (FY)</strong></td>
+<td>The company's 12-month accounting year. It does not always end in December (NVDA's ends in late January).</td>
+</tr>
+<tr>
+<td><strong>Company-year</strong></td>
+<td>One company in one fiscal year, for example "NVDA, FY2024". Each is one row of data.</td>
+</tr>
+<tr>
+<td><strong>Sub-industry</strong></td>
+<td>The group a company belongs to: Hardware &amp; Equipment, Semiconductors, or Software &amp; Services.</td>
+</tr>
+<tr>
+<td><strong>XLK</strong></td>
+<td>An exchange-traded fund that holds the large US technology stocks. We use it as the benchmark for the tech sector.</td>
+</tr>
+<tr>
+<td><strong>Revenue (sales)</strong></td>
+<td>Money the company takes in from selling its products and services.</td>
+</tr>
+<tr>
+<td><strong>Revenue growth</strong></td>
+<td>Percentage change in revenue from the year before.</td>
+</tr>
+<tr>
+<td><strong>Net income growth</strong></td>
+<td>Percentage change in profit after all costs and taxes from the year before.</td>
+</tr>
+<tr>
+<td><strong>ROE (return on equity)</strong></td>
+<td>Net income divided by shareholders' equity: how much profit the company makes on the owners' money.</td>
+</tr>
+<tr>
+<td><strong>ROIC (return on invested capital)</strong></td>
+<td>Operating profit after tax divided by the money invested by both owners and lenders.</td>
+</tr>
+<tr>
+<td><strong>Operating margin</strong></td>
+<td>Operating profit divided by revenue: the share of each dollar of sales left after running costs.</td>
+</tr>
+<tr>
+<td><strong>Net margin</strong></td>
+<td>Net income divided by revenue: the share of each dollar of sales left as final profit.</td>
+</tr>
+<tr>
+<td><strong>Current ratio</strong></td>
+<td>Current assets divided by current liabilities: whether the company can pay bills due within a year.</td>
+</tr>
+<tr>
+<td><strong>Interest coverage</strong></td>
+<td>Operating profit divided by interest expense: how many times over the company can pay its interest.</td>
+</tr>
+<tr>
+<td><strong>Debt/equity</strong></td>
+<td>Total debt divided by shareholders' equity: how much the company relies on borrowing.</td>
+</tr>
+<tr>
+<td><strong>Operating cash flow</strong></td>
+<td>Cash the business actually brings in from its normal operations during the year.</td>
+</tr>
+<tr>
+<td><strong>Capital spending (capex)</strong></td>
+<td>Cash spent on long-term assets such as factories and equipment.</td>
+</tr>
+<tr>
+<td><strong>Free cash flow (FCF)</strong></td>
+<td>Operating cash flow minus capital spending: cash left over for owners and lenders.</td>
+</tr>
+<tr>
+<td><strong>FCF margin</strong></td>
+<td>Free cash flow divided by revenue.</td>
+</tr>
+<tr>
+<td><strong>Accruals</strong></td>
+<td>(Net income - operating cash flow) / total assets. A high value means reported profit is much bigger than the cash coming in, which is a warning sign.</td>
+</tr>
+<tr>
+<td><strong>Market value (market capitalisation)</strong></td>
+<td>Share price multiplied by the number of shares: what the stock market says the company's shares are worth.</td>
+</tr>
+<tr>
+<td><strong>Enterprise value (EV)</strong></td>
+<td>Market value + debt - cash - short-term investments: the cost of buying the whole business.</td>
+</tr>
+<tr>
+<td><strong>Net debt</strong></td>
+<td>Debt minus cash and short-term investments.</td>
+</tr>
+<tr>
+<td><strong>EV/Sales</strong></td>
+<td>Enterprise value divided by revenue: how many dollars investors pay for each dollar of sales. Higher means more expensive.</td>
+</tr>
+<tr>
+<td><strong>Valuation multiple</strong></td>
+<td>Any price measure written as a multiple, such as an EV/Sales of 4x.</td>
+</tr>
+<tr>
+<td><strong>P/E (price-to-earnings)</strong></td>
+<td>Share price divided by earnings per share. It cannot be used when a company makes a loss.</td>
+</tr>
+<tr>
+<td><strong>DCF (discounted cash flow)</strong></td>
+<td>A way to value a company by estimating its future free cash flows and converting them to today's money.</td>
+</tr>
+<tr>
+<td><strong>Discount rate (WACC)</strong></td>
+<td>The yearly rate used to convert future cash to today's money. We use 9% for every company.</td>
+</tr>
+<tr>
+<td><strong>Terminal growth</strong></td>
+<td>The growth rate assumed for every year after the forecast period ends. We use 2.5%.</td>
+</tr>
+<tr>
+<td><strong>DCF upside</strong></td>
+<td>(DCF fair price - actual share price) / actual share price. Positive means the DCF thinks the share is worth more than its price.</td>
+</tr>
+<tr>
+<td><strong>Next-12-month return</strong></td>
+<td>Percentage change in share price, including dividends, over the year after the 10-K filing date.</td>
+</tr>
+<tr>
+<td><strong>Excess return</strong></td>
+<td>A stock's return minus XLK's return over the same days: whether the stock beat or trailed the tech sector.</td>
+</tr>
+<tr>
+<td><strong>Undervalued / Overvalued / Fairly valued</strong></td>
+<td>Our RQ2 labels for a company whose EV/Sales is far below, far above, or close to what its Quality Score predicts. They are statistical comparisons, not buy or sell advice.</td>
+</tr>
+<tr>
+<td><strong>Survivorship bias</strong></td>
+<td>Error caused by studying only companies that still exist today, which leaves out companies that failed or were bought.</td>
+</tr>
+<tr>
+<td><strong>Loughran-McDonald dictionary</strong></td>
+<td>A list of positive, negative and other words built from 10-K filings, used to measure tone in finance text.</td>
+</tr>
+<tr>
+<td><strong>Tone (polarity)</strong></td>
+<td>(positive words - negative words) / (positive words + negative words), from -1 to +1.</td>
+</tr>
+</tbody>
+</table>
+<h2>Appendix B: Statistics terms</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning in simple words</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Average (mean)</strong></td>
+<td>The total of all values divided by how many values there are.</td>
+</tr>
+<tr>
+<td><strong>Median</strong></td>
+<td>The middle value when all values are put in order. Unlike the average, a few extreme values do not pull it around.</td>
+</tr>
+<tr>
+<td><strong>Percentile</strong></td>
+<td>The value below which a given share of the data falls. The 95th percentile is higher than 95% of values.</td>
+</tr>
+<tr>
+<td><strong>Standard deviation</strong></td>
+<td>How spread out values are around the average. A small standard deviation means most values are close to the average.</td>
+</tr>
+<tr>
+<td><strong>z-score</strong></td>
+<td>(value - average) / standard deviation: how many standard deviations a value is above or below the average.</td>
+</tr>
+<tr>
+<td><strong>Winsorizing</strong></td>
+<td>Capping extreme values at a chosen percentile (here the 5th and 95th) so a few outliers cannot drive the results.</td>
+</tr>
+<tr>
+<td><strong>Log (natural logarithm)</strong></td>
+<td>A transformation that shrinks large numbers more than small ones. In a regression on log values, the slope can be read as a percentage change. e^x turns a log value back into a normal number.</td>
+</tr>
+<tr>
+<td><strong>Pearson r (correlation)</strong></td>
+<td>How closely two things move together in a straight line. Goes from -1 to +1. 0 means no link, 0.3 is a weak to medium link, 0.5 is a medium to strong link.</td>
+</tr>
+<tr>
+<td><strong>Spearman rho</strong></td>
+<td>The same idea, but using ranks (1st, 2nd, 3rd...) so a few extreme values do not distort it.</td>
+</tr>
+<tr>
+<td><strong>Linear regression (OLS)</strong></td>
+<td>Draws the best straight line y = a + b·x through the data. "Best" means the line with the smallest total of squared distances between the points and the line. OLS stands for ordinary least squares.</td>
+</tr>
+<tr>
+<td><strong>Intercept (a)</strong></td>
+<td>The value the line predicts when x is 0.</td>
+</tr>
+<tr>
+<td><strong>Slope / coefficient (b)</strong></td>
+<td>How much y changes when x goes up by 1, keeping the other inputs the same.</td>
+</tr>
+<tr>
+<td><strong>Multiple regression</strong></td>
+<td>A regression with more than one input, so the effect of each input is measured while the others are held fixed.</td>
+</tr>
+<tr>
+<td><strong>Control variable</strong></td>
+<td>An extra input added to a regression so that its effect is taken out of the result we care about.</td>
+</tr>
+<tr>
+<td><strong>Fixed effect (dummy variable)</strong></td>
+<td>A yes/no (1/0) input for each year or each group. A year fixed effect soaks up anything that affected all companies in that year.</td>
+</tr>
+<tr>
+<td><strong>Baseline category</strong></td>
+<td>The year or group that the fixed effects are compared with (here FY2019 and Hardware &amp; Equipment).</td>
+</tr>
+<tr>
+<td><strong>Residual</strong></td>
+<td>Actual value minus the value the line predicts.</td>
+</tr>
+<tr>
+<td><strong>R²</strong></td>
+<td>How much of the ups and downs in y the model explains, from 0 to 1. R² = 0.14 means 14%.</td>
+</tr>
+<tr>
+<td><strong>Adjusted R²</strong></td>
+<td>R² lowered slightly to account for the number of inputs, so adding useless inputs does not make a model look better.</td>
+</tr>
+<tr>
+<td><strong>Standard error</strong></td>
+<td>How uncertain a coefficient is. A coefficient much bigger than its standard error is unlikely to be zero.</td>
+</tr>
+<tr>
+<td><strong>Clustered standard errors</strong></td>
+<td>Standard errors corrected for the fact that the 7 rows of the same company are related. Without the correction, p-values would look better than they really are.</td>
+</tr>
+<tr>
+<td><strong>F-statistic</strong></td>
+<td>A test of whether the model as a whole explains anything at all.</td>
+</tr>
+<tr>
+<td><strong>p-value</strong></td>
+<td>The chance of seeing a result this strong if there were really no link or no difference.</td>
+</tr>
+<tr>
+<td><strong>Statistically significant</strong></td>
+<td>A result with a p-value below 0.05: unlikely to be due to luck alone.</td>
+</tr>
+<tr>
+<td><strong>N</strong></td>
+<td>The number of observations (company-years) used in a test.</td>
+</tr>
+<tr>
+<td><strong>Welch t-test</strong></td>
+<td>Checks whether the averages of two groups are really different, or whether the gap could just be luck. The Welch version does not assume both groups are equally spread out.</td>
+</tr>
+<tr>
+<td><strong>In-sample</strong></td>
+<td>Measured on the same data the model was fitted on.</td>
+</tr>
+<tr>
+<td><strong>Out-of-sample / walk-forward</strong></td>
+<td>The model is fitted only on earlier years and then tested on a later year it has never seen, as an investor would have had to do at the time.</td>
+</tr>
+<tr>
+<td><strong>Back-test</strong></td>
+<td>Checking how a rule would have performed on past data.</td>
+</tr>
+</tbody>
+</table></body></html>

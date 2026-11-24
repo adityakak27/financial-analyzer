@@ -8,8 +8,8 @@ Regression 2 (+ revenue growth, fiscal-year and sub-industry fixed effects; SE c
 Dep. Variable:           log_ev_sales   R-squared:                       0.323
 Model:                            OLS   Adj. R-squared:                  0.304
 Method:                 Least Squares   F-statistic:                     14.89
-Date:                Mon, 23 Nov 2026   Prob (F-statistic):           5.67e-12
-Time:                        19:44:20   Log-Likelihood:                -372.51
+Date:                Wed, 25 Nov 2026   Prob (F-statistic):           5.67e-12
+Time:                        02:56:37   Log-Likelihood:                -372.51
 No. Observations:                 330   AIC:                             765.0
 Df Residuals:                     320   BIC:                             803.0
 Df Model:                           9                                         
